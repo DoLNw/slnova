@@ -27,7 +27,7 @@ from oslo_log import log as logging
 import webob.exc
 from webob import util as woutil
 
-from slnova.i18n import _, _LE
+from slnova.scheduler.i18n import _, _LE
 
 LOG = logging.getLogger(__name__)
 

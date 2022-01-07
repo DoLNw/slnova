@@ -26,6 +26,7 @@ from slnova.scheduler import weights
 
 CONF = slnova.conf.CONF
 
+
 class DiskWeigher(weights.BaseHostWeigher):
     minval = 0
 
@@ -38,5 +39,3 @@ class DiskWeigher(weights.BaseHostWeigher):
     def _weigh_object(self, host_state):
         """Higher weights win.  We want spreading to be the default."""
         return host_state.free_disk_mb
-        # return host_state.cpufreq
-

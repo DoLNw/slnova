@@ -17,9 +17,9 @@ import slnova.conf
 
 from oslo_log import log as logging
 
-from slnova.i18n import _LW
 from slnova.scheduler import filters
-from slnova.scheduler.filters import utils
+# from slnova.i18n import _LW
+# from slnova.scheduler.filters import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -84,25 +84,25 @@ class DiskFilter(filters.BaseHostFilter):
         return True
 
 
-class AggregateDiskFilter(DiskFilter):
-    """AggregateDiskFilter with per-aggregate disk allocation ratio flag.
-
-    Fall back to global disk_allocation_ratio if no per-aggregate setting
-    found.
-    """
-
-    RUN_ON_REBUILD = False
-
-    def _get_disk_allocation_ratio(self, host_state, spec_obj):
-        aggregate_vals = utils.aggregate_values_from_key(
-            host_state,
-            'disk_allocation_ratio')
-        try:
-            ratio = utils.validate_num_values(
-                aggregate_vals, host_state.disk_allocation_ratio,
-                cast_to=float)
-        except ValueError as e:
-            LOG.warning(_LW("Could not decode disk_allocation_ratio: '%s'"), e)
-            ratio = host_state.disk_allocation_ratio
-
-        return ratio
+# class AggregateDiskFilter(DiskFilter):
+#     """AggregateDiskFilter with per-aggregate disk allocation ratio flag.
+#
+#     Fall back to global disk_allocation_ratio if no per-aggregate setting
+#     found.
+#     """
+#
+#     RUN_ON_REBUILD = False
+#
+#     def _get_disk_allocation_ratio(self, host_state, spec_obj):
+#         aggregate_vals = utils.aggregate_values_from_key(
+#             host_state,
+#             'disk_allocation_ratio')
+#         try:
+#             ratio = utils.validate_num_values(
+#                 aggregate_vals, host_state.disk_allocation_ratio,
+#                 cast_to=float)
+#         except ValueError as e:
+#             LOG.warning(_LW("Could not decode disk_allocation_ratio: '%s'"), e)
+#             ratio = host_state.disk_allocation_ratio
+#
+#         return ratio

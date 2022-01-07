@@ -19,7 +19,7 @@ import collections
 
 from oslo_log import log as logging
 
-from slnova.i18n import _LI
+from slnova.scheduler.i18n import _LI
 
 LOG = logging.getLogger(__name__)
 
@@ -27,10 +27,7 @@ LOG = logging.getLogger(__name__)
 def aggregate_values_from_key(host_state, key_name):
     """Returns a set of values based on a metadata key for a specific host."""
     aggrlist = host_state.aggregates
-    return {aggr.metadata[key_name]
-              for aggr in aggrlist
-              if key_name in aggr.metadata
-              }
+    return {aggr.metadata[key_name] for aggr in aggrlist if key_name in aggr.metadata}
 
 
 def aggregate_metadata_get_by_host(host_state, key=None):

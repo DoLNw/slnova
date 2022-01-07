@@ -19,6 +19,7 @@ Scheduler host weights
 
 from slnova.scheduler.weights import weights
 
+
 class WeighedHost(weights.WeighedObject):
     def to_dict(self):
         x = dict(weight=self.weight)
@@ -33,6 +34,7 @@ class WeighedHost(weights.WeighedObject):
 class BaseHostWeigher(weights.BaseWeigher):
     """Base class for host weights."""
     pass
+
 
 # 处理类，获取到所有需要的称重器并且称重
 class HostWeightHandler(weights.BaseWeightHandler):

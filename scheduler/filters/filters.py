@@ -19,8 +19,8 @@ Filter support
 
 from oslo_log import log as logging
 
-from slnova.i18n import _LI
-from slnova import loadables
+from slnova.scheduler.i18n import _LI
+from slnova.scheduler import loadables
 
 LOG = logging.getLogger(__name__)
 
@@ -45,19 +45,6 @@ class BaseFilter(object):
             if self._filter_one(obj):
                 yield obj            # yield可以用next一次次的迭代出来
 
-    # # Set to true in a subclass if a filter only needs to be run once
-    # # for each request rather than for each instance
-    # run_filter_once_per_request = False
-    #
-    # def run_filter_for_index(self, index):
-    #     """Return True if the filter needs to be run for the "index-th"
-    #     instance in a request.  Only need to override this if a filter
-    #     needs anything other than "first only" or "all" behaviour.
-    #     """
-    #     if self.run_filter_once_per_request and index > 0:
-    #         return False
-    #     else:
-    #         return True
 
 # 处理类，获取所有需要的过滤器，并且过滤
 class BaseFilterHandler(loadables.BaseLoader):
@@ -67,12 +54,12 @@ class BaseFilterHandler(loadables.BaseLoader):
     """
 
     def get_filtered_objects(self, filters, objs):
-        # objs指待过滤的多个HostState
-        print(objs[0].__class__)
-        print(objs.__class__)
+        # objs指待过滤的多个HostState，不懂为啥下面还需要list一下
+        # print(objs[0].__class__)
+        # print(objs.__class__)
         list_objs = list(objs)
         LOG.debug("Starting with %d host(s)", len(list_objs))
-        print("Starting with {} host(s)".format(len(list_objs)))
+        print("\nStarting filters with {} host(s) ...".format(len(list_objs)))
         # Track the hosts as they are removed. The 'full_filter_results' list
         # contains the host/nodename info for every host that passes each
         # filter, while the 'part_filter_results' list just tracks the number
@@ -87,60 +74,32 @@ class BaseFilterHandler(loadables.BaseLoader):
         full_filter_results = []
         log_msg = "%(cls_name)s: (start: %(start)s, end: %(end)s)"
         for filter_ in filters:  # 对于每一个都需要过滤
-            # if filter_.run_filter_for_index(index):
-                cls_name = filter_.__class__.__name__
-                start_count = len(list_objs)
-                # 对每个list_obj进行_filter_one过滤, _filter_one实际会调用host_passes进行真正的过滤操作
-                # 因此, 每个过滤器类只需要继承BaseHostFilter类并实现host_passes方法即可,
-                # 这里会返回一个生成器对象
-                objs = filter_.filter_all(list_objs)
-                if objs is None:
-                    LOG.debug("Filter %s says to stop filtering", cls_name)
-                    return
-                list_objs = list(objs)
-                end_count = len(list_objs)
-                part_filter_results.append(log_msg % {"cls_name": cls_name,
-                        "start": start_count, "end": end_count})
-                if list_objs:
-                    remaining = [(getattr(obj, "host", obj),
-                                  getattr(obj, "nodename", ""))
-                                 for obj in list_objs]
-                    full_filter_results.append((cls_name, remaining))
-                else:
-                    # 如果在该过滤器运行之后,没有list_obj通过过滤,
-                    # 那么就不需要运行剩余的过滤器了
-                    LOG.info(_LI("Filter %s returned 0 hosts"), cls_name)
-                    full_filter_results.append((cls_name, None))
-                    break
-                LOG.debug("Filter %(cls_name)s returned " 
-                          "%(obj_len)d host(s)",
-                          {'cls_name': cls_name, 'obj_len': len(list_objs)})
-        # if not list_objs:
-        #     # Log the filtration history
-        #     # NOTE(sbauza): Since the Cells scheduler still provides a legacy
-        #     # dictionary for filter_props, and since we agreed on not modifying
-        #     # the Cells scheduler to support that because of Cells v2, we
-        #     # prefer to define a compatible way to address both types
-        #     if isinstance(spec_obj, dict):
-        #         rspec = spec_obj.get("request_spec", {})
-        #         inst_props = rspec.get("instance_properties", {})
-        #         inst_uuid = inst_props.get("uuid", "")
-        #     else:
-        #         inst_uuid = spec_obj.instance_uuid
-        #     msg_dict = {"inst_uuid": inst_uuid,
-        #                 "str_results": str(full_filter_results),
-        #                }
-        #     full_msg = ("Filtering removed all hosts for the request with "
-        #                 "instance ID "
-        #                 "'%(inst_uuid)s'. Filter results: %(str_results)s"
-        #                ) % msg_dict
-        #     msg_dict["str_results"] = str(part_filter_results)
-        #     part_msg = _LI("Filtering removed all hosts for the request with "
-        #                    "instance ID "
-        #                    "'%(inst_uuid)s'. Filter results: %(str_results)s"
-        #                    ) % msg_dict
-        #     LOG.debug(full_msg)
-        #     LOG.info(part_msg)
+            cls_name = filter_.__class__.__name__
+            start_count = len(list_objs)
+            # 对每个list_obj进行_filter_one过滤, _filter_one实际会调用host_passes进行真正的过滤操作
+            # 因此, 每个过滤器类只需要继承BaseHostFilter类并实现host_passes方法即可,
+            # 这里会返回一个生成器对象
+            objs = filter_.filter_all(list_objs)
+            if objs is None:
+                LOG.debug("Filter %s says to stop filtering", cls_name)
+                return
+            list_objs = list(objs)
+            end_count = len(list_objs)
+            part_filter_results.append(log_msg % {"cls_name": cls_name, "start": start_count, "end": end_count})
+            if list_objs:
+                remaining = [(getattr(obj, "host", obj),
+                              getattr(obj, "nodename", ""))
+                             for obj in list_objs]
+                full_filter_results.append((cls_name, remaining))
+            else:
+                # 如果在该过滤器运行之后,没有list_obj通过过滤,
+                # 那么就不需要运行剩余的过滤器了
+                LOG.info(_LI("Filter %s returned 0 hosts"), cls_name)
+                full_filter_results.append((cls_name, None))
+                break
+            LOG.debug("Filter %(cls_name)s returned " 
+                      "%(obj_len)d host(s)",
+                      {'cls_name': cls_name, 'obj_len': len(list_objs)})
 
         # 返回最终通过所有过滤的list_obj
         return list_objs

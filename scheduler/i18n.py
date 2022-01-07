@@ -18,6 +18,7 @@ See http://docs.openstack.org/developer/oslo.i18n/usage.html .
 
 """
 
+# 过滤器，称重器，exception需要
 import oslo_i18n
 
 DOMAIN = 'slnova'

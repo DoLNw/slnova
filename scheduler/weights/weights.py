@@ -20,7 +20,8 @@ Pluggable Weighing support
 import abc
 import six
 
-from slnova import loadables
+from slnova.scheduler import loadables
+
 
 # 参数归一化
 def normalize(weight_list, minval=None, maxval=None):
@@ -50,6 +51,7 @@ def normalize(weight_list, minval=None, maxval=None):
 
     range_ = maxval - minval
     return ((i - minval) / range_ for i in weight_list)
+
 
 # 取到该HostState对应要称重的weight的参数
 class WeighedObject(object):
@@ -119,14 +121,19 @@ class BaseWeigher(object):
 
         return weights
 
+
 # 处理类，获取到所有需要的称重器并且称重
 class BaseWeightHandler(loadables.BaseLoader):
     object_class = WeighedObject
 
     def get_weighed_objects(self, weighers, obj_list):
         """Return a sorted (descending), normalized list of WeighedObjects."""
-        # weighed_objs指所有的HostState
+        # print(obj_list[0].__class__)
+        # obj_list是list类型的，元素为HostState
         weighed_objs = [self.object_class(obj, 0.0) for obj in obj_list]
+        # weighed_objs是list类型的，元素为WeighedHost
+        # print(weighed_objs[0].__class__)
+        print("\nStarting weights with {} host(s) ...".format(len(obj_list)))
 
         # 只有一个HostState的化直接返回就行了
         if len(weighed_objs) <= 1:
@@ -134,7 +141,7 @@ class BaseWeightHandler(loadables.BaseLoader):
 
         # 用各个称重类进行处理
         for weigher in weighers:
-            weights = weigher.weigh_objects(weighed_objs) # 对于每一个称重的类，取出各个HostState的需要比较的参数
+            weights = weigher.weigh_objects(weighed_objs)  # 对于每一个称重的类，取出各个HostState的需要比较的参数
 
             # Normalize the weights，把需要比较的参数正则化（每一个称重类应该是比较一个参数的）
             weights = normalize(weights,
