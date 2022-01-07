@@ -18,12 +18,11 @@ Pluggable Weighing support
 """
 
 import abc
-
 import six
 
 from slnova import loadables
 
-
+# 参数归一化
 def normalize(weight_list, minval=None, maxval=None):
     """Normalize the values in a list between 0 and 1.0.
 
@@ -52,7 +51,7 @@ def normalize(weight_list, minval=None, maxval=None):
     range_ = maxval - minval
     return ((i - minval) / range_ for i in weight_list)
 
-
+# 取到该HostState对应要称重的weight的参数
 class WeighedObject(object):
     """Object with weight information."""
     def __init__(self, obj, weight):
@@ -76,6 +75,7 @@ class BaseWeigher(object):
     minval = None
     maxval = None
 
+    # 返回权重
     def weight_multiplier(self):
         """How weighted this weigher should be.
 
@@ -85,11 +85,13 @@ class BaseWeigher(object):
         """
         return 1.0
 
+    # 得到某个主机中需要称重的参数
     @abc.abstractmethod
-    def _weigh_object(self, obj, weight_properties):
+    def _weigh_object(self, obj):
         """Weigh an specific object."""
 
-    def weigh_objects(self, weighed_obj_list, weight_properties):
+    # 得到各个主机中需要称重的参数
+    def weigh_objects(self, weighed_obj_list):
         """Weigh multiple objects.
 
         Override in a subclass if you need access to all objects in order
@@ -99,7 +101,7 @@ class BaseWeigher(object):
         # Calculate the weights
         weights = []
         for obj in weighed_obj_list:
-            weight = self._weigh_object(obj.obj, weight_properties)
+            weight = self._weigh_object(obj.obj)   # weight为每一个HostState想要比较的参数
 
             # Record the min and max values if they are None. If they are
             # anything but none, we assume that the weigher had set them.
@@ -117,21 +119,24 @@ class BaseWeigher(object):
 
         return weights
 
-
+# 处理类，获取到所有需要的称重器并且称重
 class BaseWeightHandler(loadables.BaseLoader):
     object_class = WeighedObject
 
-    def get_weighed_objects(self, weighers, obj_list, weighing_properties):
+    def get_weighed_objects(self, weighers, obj_list):
         """Return a sorted (descending), normalized list of WeighedObjects."""
+        # weighed_objs指所有的HostState
         weighed_objs = [self.object_class(obj, 0.0) for obj in obj_list]
 
+        # 只有一个HostState的化直接返回就行了
         if len(weighed_objs) <= 1:
             return weighed_objs
 
+        # 用各个称重类进行处理
         for weigher in weighers:
-            weights = weigher.weigh_objects(weighed_objs, weighing_properties)
+            weights = weigher.weigh_objects(weighed_objs) # 对于每一个称重的类，取出各个HostState的需要比较的参数
 
-            # Normalize the weights
+            # Normalize the weights，把需要比较的参数正则化（每一个称重类应该是比较一个参数的）
             weights = normalize(weights,
                                 minval=weigher.minval,
                                 maxval=weigher.maxval)

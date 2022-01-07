@@ -14,10 +14,10 @@
 
 """Bench of utility methods used by filters."""
 
+import six
 import collections
 
 from oslo_log import log as logging
-import six
 
 from slnova.i18n import _LI
 

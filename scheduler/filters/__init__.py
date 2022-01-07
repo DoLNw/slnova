@@ -16,7 +16,7 @@
 """
 Scheduler host filters
 """
-from slnova import filters
+from slnova.scheduler.filters import filters
 
 
 class BaseHostFilter(filters.BaseFilter):
@@ -30,26 +30,29 @@ class BaseHostFilter(filters.BaseFilter):
     # existing compute node, etc.
     RUN_ON_REBUILD = False
 
-    def _filter_one(self, obj, spec):
+    # 一个的过滤过程
+    def _filter_one(self, obj):
         """Return True if the object passes the filter, otherwise False."""
         # Do this here so we don't get scheduler.filters.utils
-        from nova.scheduler import utils
-        if not self.RUN_ON_REBUILD and utils.request_is_rebuild(spec):
-            # If we don't filter, default to passing the host.
-            return True
-        else:
-            # We are either a rebuild filter, in which case we always run,
-            # or this request is not rebuild in which case all filters
-            # should run.
-            return self.host_passes(obj, spec)
+        # from slnova.scheduler import utils
+        # if not self.RUN_ON_REBUILD and utils.request_is_rebuild(spec):
+        #     # If we don't filter, default to passing the host.
+        #     return True
+        # else:
 
-    def host_passes(self, host_state, filter_properties):
+        # We are either a rebuild filter, in which case we always run,
+        # or this request is not rebuild in which case all filters
+        # should run.
+        return self.host_passes(obj)
+
+    # 子类实现如何过滤，怎么算符合
+    def host_passes(self, host_state):
         """Return True if the HostState passes the filter, otherwise False.
         Override this in a subclass.
         """
         raise NotImplementedError()
 
-
+# 处理类，获取所有需要的过滤器，并且过滤
 class HostFilterHandler(filters.BaseFilterHandler):
     def __init__(self):
         super(HostFilterHandler, self).__init__(BaseHostFilter)
