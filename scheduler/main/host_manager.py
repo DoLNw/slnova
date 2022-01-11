@@ -9,14 +9,17 @@ CONF = slnova.conf.CONF
 
 
 class HostState(object):
-    def __init__(self, cpufreq=0, free_disk_mb=0, total_usable_disk_gb=0):
+    def __init__(self, isrunning=True, uuid="0000", cpufreq=0, free_memory_mb=0, total_usable_disk_gb=0, disk_allocation_ratio = 1, cpu_percent=0):
+        self.isrunning = isrunning
+        self.uuid = uuid
         self.cpufreq = cpufreq
-        self.free_disk_mb = free_disk_mb
+        self.free_memory_mb = free_memory_mb
         self.total_usable_disk_gb = total_usable_disk_gb
-        self.disk_allocation_ratio = 1
+        self.disk_allocation_ratio = disk_allocation_ratio
+        self.cpu_percent = cpu_percent
 
     def description(self):
-            return ("cpufreq: %-5d, free_disk_mb: %-8d, total_usable_disk_gb: %-3d, disk_allocation_ratio: %-.2f" % (self.cpufreq, self.free_disk_mb, self.total_usable_disk_gb, 1))
+            return ("uuid: %-37s cpufreq: %-5d, free_disk_mb: %-8d, total_usable_disk_gb: %-3d, disk_allocation_ratio: %-.2f" % (self.uuid, self.cpufreq, self.free_disk_mb, self.total_usable_disk_gb, 1))
 
 
         # 规定：定义的时候，上面需要两个空行
@@ -53,6 +56,7 @@ class HostManager(object):
         host12 = HostState(12, 60, 100)
         host100 = HostState(100, 12, 100)
         host9 = HostState(9, 19, 100)
+        host9 = HostState(9, 55, 100)
 
         return [host12, host100, host9]
 
