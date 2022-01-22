@@ -19,28 +19,34 @@
 import pymysql
 import traceback
 import sys
-sys.path.append("/Users/jc")
+sys.path.append("/Users/jc/jcall/研究实验代码")
 
-from slnova.scheduler.main.host_manager import HostState
+from slnova.scheduler.main.host_state import HostState
 from slnova.info import getinfo
 
 # 实现一个定期向数据库更新电脑参数数据
+
+# 打开数据库连接
+db = pymysql.connect(host='116.62.233.27', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
+# 使用cursor()方法获取操作游标
+cursor = db.cursor()
 
 def update_info():
    hoststate = HostState(isrunning=False, uuid=getinfo.get_uuid(), cpufreq=getinfo.get_cpu_freq(), \
                          free_memory_mb=getinfo.get_free_memory_mb(), \
                          total_usable_disk_gb=getinfo.get_total_usable_disk_gb(), disk_allocation_ratio = 1, \
-                         cpu_percent=getinfo.get_cpu_percent())
+                         cpu_percent=getinfo.get_cpu_percent(), ip=getinfo.get_ip(), name=getinfo.get_name(), \
+                         free_disk_gb=getinfo.get_free_disk_gb(), time=getinfo.get_time())
    querysql = "SELECT * FROM test where uuid = '%s'" % hoststate.uuid
    delsql = "delete from test where uuid = '%s'" % hoststate.uuid
    addsql = """INSERT INTO test(uuid, isrunning, cpufreq, free_memory_mb, total_usable_disk_gb, \
-               disk_allocation_ratio, cpu_percent) VALUES ('%s', %d, %d, %d, %d, %.2f, %f)""" % \
+               disk_allocation_ratio, cpu_percent, ip, name, free_disk_gb, time) VALUES ('%s', %d, %d, %d, %d, %.2f, %.2f, '%s', \
+                '%s', %.2f, '%s')""" % \
             (hoststate.uuid, hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb, \
-             hoststate.total_usable_disk_gb, hoststate.disk_allocation_ratio, hoststate.cpu_percent)
-   # 打开数据库连接
-   db = pymysql.connect(host='116.62.233.27', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
-   # 使用cursor()方法获取操作游标
-   cursor = db.cursor()
+             hoststate.total_usable_disk_gb, hoststate.disk_allocation_ratio, hoststate.cpu_percent, hoststate.ip, \
+             hoststate.name, hoststate.free_disk_gb, hoststate.time)
+   # print(addsql)
+
 
    try:
       cursor.execute(querysql)
@@ -57,10 +63,10 @@ def update_info():
       traceback.print_exc()
       db.rollback()
 
-   # 关闭游标
-   cursor.close()
-   # 关闭数据库连接
-   db.close()
+   # # 关闭游标
+   # cursor.close()
+   # # 关闭数据库连接
+   # db.close()
 
 
 """sched模块实现了一个时间调度程序，该程序可以通过单线程执行来处理按照时间尺度进行调度的时间。
@@ -81,22 +87,37 @@ s = sched.scheduler(time.time, time.sleep)
 #     print('Now Time:',datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),a)
 
 
-# 每五分钟运行一次，优先级别为2
-def task():
-    s.enter(5, 2, update_info, argument=())
-    s.run()
+# # 每inc秒运行一次，优先级别为2
+# def task():
+#     s.enter(0, 2, update_info, argument=())
+#     s.run()
+#
+#
+# def perform(inc):
+#     s.enter(inc, 0, perform, (inc,))
+#     task()
+#
+#
+# def main(inc=3):
+#     s.enter(0, 0, perform, (inc,))
+#     s.run()
 
-
-def perform(inc):
-    s.enter(inc, 0, perform, (inc,))
-    task()
-
-
-def main(inc=3):
-    s.enter(0, 0, perform, (inc,))
-    s.run()
+# 上面那个，感觉递归进去太深入了。
+from apscheduler.schedulers.background import BackgroundScheduler
+def scheTask():
+    sched = BackgroundScheduler(timezone='MST')
+    # 如果有多个任务序列的话可以给每个任务设置ID号，可以根据ID号选择清除对象，且remove放到start前才有效
+    sched.add_job(update_info, 'interval', seconds=1, id='update_info_id')
+    # sched.remove_job('update_info_id')
+    sched.start()
 
 
 if __name__ == '__main__':
-    main()
+    # 每隔1秒上传一次
+    # main(1.0)
+    scheTask()
+
+    # 为了使得这个程序保持运行，需要添加这个while死循环
+    while(True):
+        time.sleep(10)
 

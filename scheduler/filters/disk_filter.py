@@ -42,9 +42,9 @@ class DiskFilter(filters.BaseHostFilter):
         # requested_disk = (1024 * (spec_obj.root_gb +
         #                           spec_obj.ephemeral_gb) +
         #                   spec_obj.swap)
-        requested_disk = 20
+        requested_disk_mb = 20 * 1024
 
-        free_disk_mb = host_state.free_disk_mb
+        free_disk_mb = host_state.free_disk_gb * 1024
         # 总共的容量
         total_usable_disk_mb = host_state.total_usable_disk_gb * 1024
 
@@ -52,12 +52,12 @@ class DiskFilter(filters.BaseHostFilter):
         # other instances.  In other words, if there isn't room for even just
         # this one instance in total_usable_disk space, consider the host full.
         # 磁盘总容量需要大于请求容量，否则不符合
-        if total_usable_disk_mb < requested_disk:
+        if total_usable_disk_mb < requested_disk_mb:
             LOG.debug("%(host_state)s does not have %(requested_disk)s "
                       "MB usable disk space before overcommit, it only "
                       "has %(physical_disk_size)s MB.",
                       {'host_state': host_state,
-                       'requested_disk': requested_disk,
+                       'requested_disk': requested_disk_mb,
                        'physical_disk_size':
                            total_usable_disk_mb})
             return False
@@ -71,11 +71,11 @@ class DiskFilter(filters.BaseHostFilter):
         usable_disk_mb = disk_mb_limit - used_disk_mb
 
         # 计算出来的可用>=请求的，则满足，否则不满足
-        if not usable_disk_mb >= requested_disk:
+        if usable_disk_mb < requested_disk_mb:
             LOG.debug("%(host_state)s does not have %(requested_disk)s MB "
                     "usable disk, it only has %(usable_disk_mb)s MB usable "
                     "disk.", {'host_state': host_state,
-                               'requested_disk': requested_disk,
+                               'requested_disk': requested_disk_mb,
                                'usable_disk_mb': usable_disk_mb})
             return False
 

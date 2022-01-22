@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/Users/jc")
+sys.path.append("/Users/jc/jcall/研究实验代码")
 
 import slnova.conf
 

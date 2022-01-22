@@ -2,6 +2,10 @@ import psutil
 import socket
 import uuid
 # https://github.com/giampaolo/psutil
+import time
+
+def get_time():
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 #与上次调用经过时间内的cpu的使用率
 def get_cpu_percent():
@@ -47,14 +51,17 @@ def get_cpu_freq():
     return psutil.cpu_freq().current
 
 
-# 获取空闲的磁盘空间
+# 获取空闲的内存空间
 def get_free_memory_mb():
     return psutil.virtual_memory().free / 1024 / 1024  # 以MB结尾
 
+# 获取空闲的磁盘空间
+def get_free_disk_gb():
+    return psutil.disk_usage('/').free / 1024 / 1024 / 1024  # 以MB结尾
 
 # 获取磁盘的总容量
 def get_total_usable_disk_gb():
-    return psutil.disk_usage('/').free / 1024 / 1024 / 1024
+    return psutil.disk_usage('/').total / 1024 / 1024 / 1024
 
 
 if __name__ == '__main__':
@@ -70,7 +77,7 @@ if __name__ == '__main__':
 
     print(psutil.disk_partitions())
     print(psutil.disk_usage('/'))
-    print(psutil.disk_usage('/').free / 1024 / 1024 / 1024)
+    print(psutil.disk_usage('/').free / 1000 / 1000 / 1000)
 
     # print(psutil.sensors_fans())
 
@@ -81,3 +88,9 @@ if __name__ == '__main__':
     print(psutil.sensors_battery().percent)
     # for proc in psutil.process_iter(['pid', 'name']):
     #     print(proc.info)
+
+    print(socket.getfqdn(socket.gethostname()))
+
+    print(get_total_usable_disk_gb())
+
+    print(psutil.disk_usage('/'))
