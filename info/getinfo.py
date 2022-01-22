@@ -1,8 +1,12 @@
+# -*- coding: utf-8 -*-
+
 import psutil
 import socket
 import uuid
 # https://github.com/giampaolo/psutil
 import time
+import urllib.request
+from json import load
 
 def get_time():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -36,9 +40,11 @@ def get_name():
     # return socket.getfqdn(socket.gethostname())
     return socket.gethostname()
 
+
 # #获取本机ip
 def get_ip():
-    return socket.gethostbyname(get_name())
+    return load(urllib.request.urlopen('http://jsonip.com'))['ip']
+    # return socket.gethostbyname(get_name())
 
 # print(get_mac_address())
 # print(get_name())
@@ -89,8 +95,10 @@ if __name__ == '__main__':
     # for proc in psutil.process_iter(['pid', 'name']):
     #     print(proc.info)
 
-    print(socket.getfqdn(socket.gethostname()))
+    # print(socket.getfqdn(socket.gethostname()))
 
     print(get_total_usable_disk_gb())
 
     print(psutil.disk_usage('/'))
+
+    print(get_ip())

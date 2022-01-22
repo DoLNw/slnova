@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # # Copyright (c) 2011 OpenStack Foundation
 # # Copyright (c) 2012 Justin Santa Barbara
 # #

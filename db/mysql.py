@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 # sql = "INSERT INTO EMPLOYEE(FIRST_NAME, \
 #        LAST_NAME, AGE, SEX, INCOME) \
@@ -11,10 +12,8 @@
 
 # sql = "SELECT VERSION()"
 # sql = "SELECT * FROM test"
-# sql = "UPDATE test SET cpufreq=4 isrunning = True WHERE uuid = '%s'" % ('213')
 
 
-# a = results = cursor.fetchall()
 
 import pymysql
 import traceback
@@ -31,42 +30,59 @@ db = pymysql.connect(host='116.62.233.27', user='root', passwd='971707', db='sln
 # 使用cursor()方法获取操作游标
 cursor = db.cursor()
 
+hoststate = HostState(isrunning=False, uuid=getinfo.get_uuid(), cpufreq=getinfo.get_cpu_freq(),
+                     free_memory_mb=getinfo.get_free_memory_mb(),
+                     total_usable_disk_gb=getinfo.get_total_usable_disk_gb(), disk_allocation_ratio = 1,
+                     cpu_percent=getinfo.get_cpu_percent(), ip=getinfo.get_ip(), name=getinfo.get_name(),
+                     free_disk_gb=getinfo.get_free_disk_gb(), time=getinfo.get_time())
+
 def update_info():
-   hoststate = HostState(isrunning=False, uuid=getinfo.get_uuid(), cpufreq=getinfo.get_cpu_freq(), \
-                         free_memory_mb=getinfo.get_free_memory_mb(), \
-                         total_usable_disk_gb=getinfo.get_total_usable_disk_gb(), disk_allocation_ratio = 1, \
-                         cpu_percent=getinfo.get_cpu_percent(), ip=getinfo.get_ip(), name=getinfo.get_name(), \
-                         free_disk_gb=getinfo.get_free_disk_gb(), time=getinfo.get_time())
-   querysql = "SELECT * FROM test where uuid = '%s'" % hoststate.uuid
-   delsql = "delete from test where uuid = '%s'" % hoststate.uuid
-   addsql = """INSERT INTO test(uuid, isrunning, cpufreq, free_memory_mb, total_usable_disk_gb, \
+    hoststate.isrunning = True
+    hoststate.cpufreq = getinfo.get_cpu_freq()
+    hoststate.free_memory_mb = getinfo.get_free_memory_mb()
+    hoststate.total_usable_disk_gb = getinfo.get_total_usable_disk_gb()
+    hoststate.cpu_percent = getinfo.get_cpu_percent()
+    hoststate.free_disk_gb = getinfo.get_free_disk_gb()
+    hoststate.time = getinfo.get_time()
+
+    querysql = "SELECT * FROM test where uuid = '%s'" % hoststate.uuid
+    delsql = "delete from test where uuid = '%s'" % hoststate.uuid
+    addsql = """INSERT INTO test(uuid, isrunning, cpufreq, free_memory_mb, total_usable_disk_gb, \
                disk_allocation_ratio, cpu_percent, ip, name, free_disk_gb, time) VALUES ('%s', %d, %d, %d, %d, %.2f, %.2f, '%s', \
                 '%s', %.2f, '%s')""" % \
-            (hoststate.uuid, hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb, \
-             hoststate.total_usable_disk_gb, hoststate.disk_allocation_ratio, hoststate.cpu_percent, hoststate.ip, \
+            (hoststate.uuid, hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb,
+             hoststate.total_usable_disk_gb, hoststate.disk_allocation_ratio, hoststate.cpu_percent, hoststate.ip,
              hoststate.name, hoststate.free_disk_gb, hoststate.time)
    # print(addsql)
 
+    updatesql = "UPDATE test SET isrunning = %d, cpufreq = %d, free_memory_mb = %d, total_usable_disk_gb = %d,  \
+                disk_allocation_ratio = %.2f, cpu_percent = %.2f, ip = '%s', name = '%s', free_disk_gb = %.2f, \
+                time = '%s' WHERE uuid = '%s'" % (hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb,
+                                                   hoststate.total_usable_disk_gb, hoststate.disk_allocation_ratio,
+                                                   hoststate.cpu_percent, hoststate.ip,
+                                                   hoststate.name, hoststate.free_disk_gb, hoststate.time,
+                                                   hoststate.uuid)
 
-   try:
-      cursor.execute(querysql)
-      data = cursor.fetchone()
-      if data: # data有值，那么需要删除
-         cursor.execute(delsql)
-      cursor.execute(addsql)     # 添加是一定需要的，删除的话，是需要数据库有数据的时候才删除它
+    try:
+        # cursor.execute(querysql)
+        # data = cursor.fetchone()
+        # if data: # data有值，那么需要删除
+        #    cursor.execute(delsql)
+        # cursor.execute(addsql)     # 添加是一定需要的，删除的话，是需要数据库有数据的时候才删除它
+        cursor.execute(updatesql)
 
-      db.commit()
-      print("update successfully")
-   except:
-      print("mysql update error")
-      # 输出异常信息
-      traceback.print_exc()
-      db.rollback()
+        db.commit()
+        print("update successfully")
+    except:
+        print("mysql update error")
+        # 输出异常信息
+        traceback.print_exc()
+        db.rollback()
 
-   # # 关闭游标
-   # cursor.close()
-   # # 关闭数据库连接
-   # db.close()
+    # # 关闭游标
+    # cursor.close()
+    # # 关闭数据库连接
+    # db.close()
 
 
 """sched模块实现了一个时间调度程序，该程序可以通过单线程执行来处理按照时间尺度进行调度的时间。
@@ -81,7 +97,7 @@ import time
 import sched
 import datetime
 
-s = sched.scheduler(time.time, time.sleep)
+# s = sched.scheduler(time.time, time.sleep)
 
 # def print_time(a='default'):
 #     print('Now Time:',datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),a)
@@ -121,3 +137,4 @@ if __name__ == '__main__':
     while(True):
         time.sleep(10)
 
+    # update_info()

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import slnova.conf
 
 from slnova.scheduler import filters

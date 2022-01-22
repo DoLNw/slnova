@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+
 class HostState(object):
     def __init__(self, free_disk_gb=0, ip="0.0.0.0", name="nullName", isrunning=True, uuid="0000", cpufreq=0,
                  free_memory_mb=0, total_usable_disk_gb=0, disk_allocation_ratio=1, cpu_percent=0, time = "1970-0-0 00:00:00"):
