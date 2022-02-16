@@ -516,8 +516,9 @@ token = ''
 username = 'jcwang'
 password = '971707'
 
-accessKey = "0206e24ee732c635e10964442df569e8cc3c54358aba722f25585ab35eb19294"  # 此处填入真实的内容
-secretKey = "8a0d597a7373a4c39d031d7f45634a7bf98afa9626c7792ccd5a06de55e7c56a"  # 此处填入真实内容
+accessKey = ""  # 此处填入真实的内容
+secretKey = ""  # 此处填入真实内容
+
 
 headers = {
         'X-ApiKeys': 'accessKey={accesskey};secretKey={secretkey}'.format(accesskey=accessKey, secretkey=secretKey),
