@@ -505,20 +505,21 @@ import sys
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-import sys
-sys.path.append("/Users/jc/jcall/研究实验代码")
+# import sys
+# sys.path.append("/Users/jc/jcall/研究实验代码")
 from slnova.info import getinfo
 
-scanned_ip = '116.62.233.27'
-nessus_url = 'https://116.62.233.27:8834'
+import slnova.conf
+CONF = slnova.conf.CONF
+
+scanned_ip = CONF.nessus.scanned_ip
+nessus_url = CONF.nessus.nessus_url
 verify = False
 token = ''
-username = 'jcwang'
-password = '971707'
-
-accessKey = ""  # 此处填入真实的内容
-secretKey = ""  # 此处填入真实内容
-
+username = CONF.nessus.username
+password = CONF.nessus.password
+accessKey = CONF.nessus.accessKey  # 此处填入真实的内容
+secretKey = CONF.nessus.secretKey  # 此处填入真实内容
 
 headers = {
         'X-ApiKeys': 'accessKey={accesskey};secretKey={secretkey}'.format(accesskey=accessKey, secretkey=secretKey),

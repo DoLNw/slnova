@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
-
-# sql = "INSERT INTO EMPLOYEE(FIRST_NAME, \
-#        LAST_NAME, AGE, SEX, INCOME) \
-#        VALUES (%s, %s, %s, %s, %s )" % \
-#        ('Mac', 'Mohan', 20, 'M', 2000)
-
-# delsql = "delete from test where uuid = %s" % '213'
-# addsql = """INSERT INTO test(uuid, isrunning, cpufreq, free_disk_mb,
-#          total_usable_disk_gb, disk_allocation_ratio)
-#          VALUES ("213", True, 3, 4, 5, %d)""" % 100
-
-# sql = "SELECT VERSION()"
-# sql = "SELECT * FROM test"
-
-
-
 import pymysql
 import traceback
 import sys
-sys.path.append("/Users/jc/jcall/研究实验代码")
+# sys.path.append("/Users/jc/jcall/研究实验代码")
+
+sys.path.append("/root")
+
+import slnova.conf
+CONF = slnova.conf.CONF
+
+host = CONF.mysql.host
+user = CONF.mysql.user
+passwd = CONF.mysql.passwd
+mydb = CONF.mysql.db
+port = CONF.mysql.port
+table = CONF.mysql.table
 
 from slnova.scheduler.main.host_state import HostState
 from slnova.info import getinfo
@@ -42,21 +38,21 @@ def update_info():
     hoststate.free_disk_gb = getinfo.get_free_disk_gb()
     hoststate.time = getinfo.get_time()
 
-    querysql = "SELECT * FROM test where uuid = '%s'" % hoststate.uuid
-    delsql = "delete from test where uuid = '%s'" % hoststate.uuid
-    addsql = """INSERT INTO test(uuid, isrunning, cpufreq, free_memory_mb, total_usable_disk_gb, \
+    querysql = "SELECT * FROM %s where uuid = '%s'" % (table, hoststate.uuid)
+    delsql = "delete from %s where uuid = '%s'" % (table, hoststate.uuid)
+    addsql = """INSERT INTO %s(uuid, isrunning, cpufreq, free_memory_mb, total_usable_disk_gb, \
                disk_allocation_ratio, cpu_percent, ip, name, free_disk_gb, time, high_vul, medium_vul, low_vul, info_vul)\
                 VALUES ('%s', %d, %d, %d, %d, %.2f, %.2f, '%s', \
                 '%s', %.2f, '%s', %d, %d, %d, %d)""" % \
-            (hoststate.uuid, hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb,
+            (table, hoststate.uuid, hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb,
              hoststate.total_usable_disk_gb, hoststate.disk_allocation_ratio, hoststate.cpu_percent, hoststate.ip,
              hoststate.name, hoststate.free_disk_gb, hoststate.time, hoststate.high_vul, hoststate.medium_vul,
              hoststate.low_vul, hoststate.info_vul)
     # print(addsql)
 
-    updatesql = "UPDATE test SET isrunning = %d, cpufreq = %d, free_memory_mb = %d, total_usable_disk_gb = %d,  \
+    updatesql = "UPDATE %s SET isrunning = %d, cpufreq = %d, free_memory_mb = %d, total_usable_disk_gb = %d,  \
                 disk_allocation_ratio = %.2f, cpu_percent = %.2f, ip = '%s', name = '%s', free_disk_gb = %.2f, \
-                time = '%s' WHERE uuid = '%s'" % (hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb,
+                time = '%s' WHERE uuid = '%s'" % (table, hoststate.isrunning, hoststate.cpufreq, hoststate.free_memory_mb,
                                                    hoststate.total_usable_disk_gb, hoststate.disk_allocation_ratio,
                                                    hoststate.cpu_percent, hoststate.ip,
                                                    hoststate.name, hoststate.free_disk_gb, hoststate.time,
@@ -64,7 +60,7 @@ def update_info():
 
     # 要每一次打开一下的好，因为不然的话，数据库临时关闭之后，就出错了吧？
     # 打开数据库连接
-    db = pymysql.connect(host='116.62.233.27', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
+    db = pymysql.connect(host=host, user=user, passwd=passwd, db=mydb, port=port, charset='utf8')
     # db = pymysql.connect(host='127.0.0.1', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
     # 使用cursor()方法获取操作游标
     cursor = db.cursor()
@@ -103,12 +99,12 @@ def update_nessus_info(high_vul=0, medium_vul=0, low_vul=0, info_vul=0):
     hoststate.low_vul = low_vul
     hoststate.info_vul = info_vul
 
-    updatesql = "UPDATE test SET high_vul = %d, medium_vul = %d, low_vul = %d, info_vul = %d WHERE uuid = '%s'" % \
-                (hoststate.high_vul, hoststate.medium_vul, hoststate.low_vul, hoststate.info_vul, hoststate.uuid)
+    updatesql = "UPDATE %s SET high_vul = %d, medium_vul = %d, low_vul = %d, info_vul = %d WHERE uuid = '%s'" % \
+                (table, hoststate.high_vul, hoststate.medium_vul, hoststate.low_vul, hoststate.info_vul, hoststate.uuid)
 
     # 要每一次打开一下的好，因为不然的话，数据库临时关闭之后，就出错了吧？
     # 打开数据库连接
-    db = pymysql.connect(host='116.62.233.27', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
+    db = pymysql.connect(host=host, user=user, passwd=passwd, db=mydb, port=port, charset='utf8')
     # db = pymysql.connect(host='127.0.0.1', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
     # 使用cursor()方法获取操作游标
     cursor = db.cursor()

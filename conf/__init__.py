@@ -22,10 +22,12 @@
 from oslo_config import cfg
 
 from slnova.conf import scheduler
+from slnova.conf import myinfo
 
 CONF = cfg.CONF
 
 scheduler.register_opts(CONF)
+myinfo.register_opts(CONF)
 
 
 # remote_debug.register_cli_opts(CONF)

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-import sys
-sys.path.append("/Users/jc/jcall/研究实验代码")
+# import sys
+# sys.path.append("/Users/jc/jcall/研究实验代码")
 
 import slnova.conf
 
