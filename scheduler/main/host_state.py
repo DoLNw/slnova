@@ -3,7 +3,8 @@
 
 class HostState(object):
     def __init__(self, free_disk_gb=0, ip="0.0.0.0", name="nullName", isrunning=True, uuid="0000", cpufreq=0,
-                 free_memory_mb=0, total_usable_disk_gb=0, disk_allocation_ratio=1, cpu_percent=0, time = "1970-0-0 00:00:00"):
+                 free_memory_mb=0, total_usable_disk_gb=0, disk_allocation_ratio=1, cpu_percent=0,
+                 time="1970-0-0 00:00:00", high_vul=0, medium_vul=0, low_vul=0, info_vul=0):
         self.free_disk_gb = free_disk_gb
         self.isrunning = isrunning
         self.uuid = uuid
@@ -15,6 +16,10 @@ class HostState(object):
         self.name = name
         self.ip = ip
         self.time = time
+        self.high_vul = high_vul
+        self.medium_vul = medium_vul
+        self.low_vul = low_vul
+        self.info_vul = info_vul
 
     def description(self):
             return """
