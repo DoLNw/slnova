@@ -1,6 +1,16 @@
 ### Example user template template
 ### Example user template
 
+*.png
+*.jpg
+
+ml/data/*
+
+*.txt
+*.csv
+*.zip
+*.nessus
+
 # IntelliJ project files
 .idea
 *.iml

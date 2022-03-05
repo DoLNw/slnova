@@ -42,12 +42,12 @@ nessus_opts = [
         help="""
         """),
     cfg.StrOpt("accessKey",
-        default="0206e24ee732c635e10964442df569e8cc3c54358aba722f25585ab35eb19294",
+        default="xx",
         deprecated_group="DEFAULT",
         help="""
         """),
     cfg.StrOpt("secretKey",
-        default="8a0d597a7373a4c39d031d7f45634a7bf98afa9626c7792ccd5a06de55e7c56a",
+        default="xx",
         deprecated_group="DEFAULT",
         help="""
         """),
