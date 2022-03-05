@@ -21,11 +21,11 @@
 Scheduler base class that all Schedulers should inherit from
 """
 
-import slnova.conf
+import conf
 
-from slnova.scheduler.main import host_manager
+from scheduler.main import host_manager
 
-CONF = slnova.conf.CONF
+CONF = conf.CONF
 
 
 # 调度器父类

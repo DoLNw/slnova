@@ -21,7 +21,7 @@ import collections
 
 from oslo_log import log as logging
 
-from slnova.scheduler.i18n import _LI
+from scheduler.i18n import _LI
 
 LOG = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from slnova.scheduler.main import driver
+from scheduler.main import driver
 
 
 # 基于Scheduler实现的调度类，用这个类来进行调度

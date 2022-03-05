@@ -21,8 +21,8 @@ Filter support
 
 from oslo_log import log as logging
 
-from slnova.scheduler.i18n import _LI
-from slnova.scheduler import loadables
+from scheduler.i18n import _LI
+from scheduler import loadables
 
 LOG = logging.getLogger(__name__)
 

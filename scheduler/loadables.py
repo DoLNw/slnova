@@ -46,7 +46,7 @@ import sys
 
 from oslo_utils import importutils
 
-from slnova.scheduler import exception
+from scheduler import exception
 
 
 class BaseLoader(object):

@@ -22,11 +22,11 @@ stacking, you can set the 'disk_weight_multiplier' option to a negative
 number and the weighing has the opposite effect of the default.
 """
 
-import slnova.conf
+import conf
 
-from slnova.scheduler import weights
+from scheduler import weights
 
-CONF = slnova.conf.CONF
+CONF = conf.CONF
 
 
 class DiskWeigher(weights.BaseHostWeigher):
@@ -40,4 +40,4 @@ class DiskWeigher(weights.BaseHostWeigher):
     # 返回哪一个参数进行计算
     def _weigh_object(self, host_state):
         """Higher weights win.  We want spreading to be the default."""
-        return host_state.free_disk_gb
+        return host_state.used_disk_gb

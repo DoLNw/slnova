@@ -15,17 +15,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import slnova.conf
+import conf
 
 from oslo_log import log as logging
 
-from slnova.scheduler import filters
-# from slnova.i18n import _LW
-# from slnova.scheduler.filters import utils
+from scheduler import filters
+# from i18n import _LW
+# from scheduler.filters import utils
 
 LOG = logging.getLogger(__name__)
 
-CONF = slnova.conf.CONF
+CONF = conf.CONF
 
 
 class DiskFilter(filters.BaseHostFilter):
@@ -46,9 +46,9 @@ class DiskFilter(filters.BaseHostFilter):
         #                   spec_obj.swap)
         requested_disk_mb = 20 * 1024
 
-        free_disk_mb = host_state.free_disk_gb * 1024
+        free_disk_mb = host_state.used_disk_gb * 1024
         # 总共的容量
-        total_usable_disk_mb = host_state.total_usable_disk_gb * 1024
+        total_usable_disk_mb = host_state.total_disk_gb * 1024
 
         # Do not allow an instance to overcommit against itself, only against
         # other instances.  In other words, if there isn't room for even just

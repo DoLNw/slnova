@@ -19,9 +19,9 @@
 #
 # from oslo_log import log as logging
 #
-# from slnova.i18n import _LW
-# from slnova.scheduler import filters
-# from slnova.scheduler.filters import utils
+# from i18n import _LW
+# from scheduler import filters
+# from scheduler.filters import utils
 #
 # LOG = logging.getLogger(__name__)
 #

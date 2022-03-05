@@ -2,8 +2,8 @@ from oslo_config import cfg
 
 """
 更改的地方，mysql.py中的路径需要更改一下（当然，linux中也可以直接相对路径导入包的，可以见UploadPara文件中的代码，如下：
-# from slnova.scheduler.main.host_state import HostState
-# from slnova.info import getinfo
+# from scheduler.main.host_state import HostState
+# from info import getinfo
 from host_state import HostState
 import getinfo
 """
@@ -11,7 +11,7 @@ import getinfo
 """
 import sys
 # sys.path.append("/Users/jc/jcall/研究实验代码")
-from slnova.info import getinfo）
+from info import getinfo）
 然后就是下面的需要扫描的IP
 """
 

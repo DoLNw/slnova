@@ -222,7 +222,7 @@ this option cannot be enabled in that scenario. See also the
 [workarounds]/disable_group_policy_check_upcall option.
 """),
     cfg.MultiStrOpt("available_filters",
-        default=["slnova.scheduler.filters.all_filters"],
+        default=["scheduler.filters.all_filters"],
         deprecated_name="scheduler_available_filters",
         deprecated_group="DEFAULT",
         help="""
@@ -348,7 +348,7 @@ Related options:
   specified in 'scheduler_enabled_filters'.
 """),
     cfg.ListOpt("weight_classes",
-        default=["slnova.scheduler.weights.all_weighers"],
+        default=["scheduler.weights.all_weighers"],
         deprecated_name="scheduler_weight_classes",
         deprecated_group="DEFAULT",
         help="""

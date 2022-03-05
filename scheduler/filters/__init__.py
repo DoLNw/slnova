@@ -18,7 +18,7 @@
 """
 Scheduler host filters
 """
-from slnova.scheduler.filters import filters
+from scheduler.filters import filters
 
 
 class BaseHostFilter(filters.BaseFilter):
@@ -36,7 +36,7 @@ class BaseHostFilter(filters.BaseFilter):
     def _filter_one(self, obj):
         """Return True if the object passes the filter, otherwise False."""
         # Do this here so we don't get scheduler.filters.utils
-        # from slnova.scheduler import utils
+        # from scheduler import utils
         # if not self.RUN_ON_REBUILD and utils.request_is_rebuild(spec):
         #     # If we don't filter, default to passing the host.
         #     return True

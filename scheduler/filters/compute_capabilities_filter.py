@@ -19,8 +19,8 @@
 # from oslo_serialization import jsonutils
 # import six
 #
-# from slnova.scheduler import filters
-# from slnova.scheduler.filters import extra_specs_ops
+# from scheduler import filters
+# from scheduler.filters import extra_specs_ops
 #
 #
 # LOG = logging.getLogger(__name__)

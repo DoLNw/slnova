@@ -4,11 +4,11 @@
 # import sys
 # sys.path.append("/Users/jc/jcall/研究实验代码")
 
-import slnova.conf
+import conf
 
-from slnova.scheduler.main import filter_scheduler
+from scheduler.main import filter_scheduler
 
-CONF = slnova.conf.CONF
+CONF = conf.CONF
 
 
 # 规定，定义的时候，上面需要两个空行

@@ -54,7 +54,6 @@
 # https://help.aliyun.com/document_detail/131058.html
 # https://help.aliyun.com/document_detail/201599.html
 
-#!/usr/bin/env python
 #coding=utf-8
 
 import json

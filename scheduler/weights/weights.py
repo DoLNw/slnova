@@ -22,7 +22,7 @@ Pluggable Weighing support
 import abc
 import six
 
-from slnova.scheduler import loadables
+from scheduler import loadables
 
 
 # 参数归一化

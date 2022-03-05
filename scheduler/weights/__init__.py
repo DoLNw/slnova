@@ -19,7 +19,7 @@
 Scheduler host weights
 """
 
-from slnova.scheduler.weights import weights
+from scheduler.weights import weights
 
 
 class WeighedHost(weights.WeighedObject):
