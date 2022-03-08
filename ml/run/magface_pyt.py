@@ -21,8 +21,11 @@ import warnings
 import time
 import pprint
 import os
+import json
+from scheduler.main.host_state import hoststate
 
 from db.mysql import upload_ml_info, upload_is_training_status, upload_initial_ml_info
+from rabbitmq.rabbitmq import send_fanout_signal
 
 import conf
 CONF = conf.CONF
@@ -155,7 +158,11 @@ def main_worker(ngpus_per_node, args):
         # 保存了loss和准确率
         loss, acc = do_train(train_loader, model, criterion, optimizer, epoch, args)
 
-
+        # 这个是需要每一个epoch都打印的
+        # 存储的模型是从1开始计算的，
+        # 比如epoch是17，这个时候没存储,最近存储的是16.pth（epoch=15）的时候，所以此处求的modesize是16.pth这个，用下面的公式没问题
+        upload_ml_info(loss, acc, epoch,
+                       os.path.join(args.pth_save_fold, '{}.pth'.format(str((epoch + 1) - (epoch % 5)).zfill(5))))
 
 
         # save pth
@@ -177,18 +184,19 @@ def main_worker(ngpus_per_node, args):
             ))
 
             cprint(' : save pth for epoch {}'.format(epoch+1))
+            cprint('wait next command...'.format(epoch + 1))
 
-        # 这个是需要每一个epoch都打印的
-        # 存储的模型是从1开始计算的，
-        # 比如epoch是17，这个时候没存储,最近存储的是16.pth（epoch=15）的时候，所以此处求的modesize是16.pth这个，用下面的公式没问题
-        upload_ml_info(loss, acc, epoch,
-                       os.path.join(args.pth_save_fold, '{}.pth'.format(str((epoch + 1) - (epoch % 5)).zfill(5))))
-
-
+            # 存储模型后同时发送模型，然后等待其它训练好得到新模型，然后进行下一轮epoch
+            send_fanout_signal(json.dumps({'start': False, 'epoch': epoch, 'uuid': str(hoststate.uuid), "finished": False}))
+            while not hoststate.receive_next_epoch_train_signal:
+                time.sleep(1)
+            hoststate.receive_next_epoch_train_signal = False
 
 
     # 训练结束
+    cprint('training is finished')
     upload_is_training_status(False)
+    send_fanout_signal(json.dumps({'start': False, 'epoch': -1, 'uuid': str(hoststate.uuid), "finished": True}))
 
 
 def do_train(train_loader, model, criterion, optimizer, epoch, args, swarmCallback=None):

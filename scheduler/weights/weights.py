@@ -137,9 +137,9 @@ class BaseWeightHandler(loadables.BaseLoader):
         # print(weighed_objs[0].__class__)
         print("\nStarting weights with {} host(s) ...".format(len(obj_list)))
 
-        # 只有一个HostState的化直接返回就行了
-        if len(weighed_objs) <= 1:
-            return weighed_objs
+        # # 只有1个HostState的话直接返回就行了
+        # if len(weighed_objs) <= 1:
+        #     return weighed_objs
 
         # 用各个称重类进行处理
         for weigher in weighers:
@@ -150,8 +150,10 @@ class BaseWeightHandler(loadables.BaseLoader):
                                 minval=weigher.minval,
                                 maxval=weigher.maxval)
 
+            # 注意，这里面的obj就是HostState加weight，类型为WeightHost
             for i, weight in enumerate(weights):
                 obj = weighed_objs[i]
                 obj.weight += weigher.weight_multiplier() * weight
 
+        # 估计reverse之后是从大到小吧
         return sorted(weighed_objs, key=lambda x: x.weight, reverse=True)

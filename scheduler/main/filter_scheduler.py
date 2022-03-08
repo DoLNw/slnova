@@ -35,6 +35,7 @@ class FilterScheduler(driver.Scheduler):
     def _get_all_host_states(self):
         print("%d %s     %-20s   %-30s" % (3, "func", "filter_scheduler.py", "_get_all_host_states"))
 
+        # 注意，这个其实是需要返回所有   正在运行  的主机的状态
         # 调用host_manager的方法，获取所有主机的各种状态
         return self.host_manager.get_all_host_states()
 
@@ -45,6 +46,10 @@ class FilterScheduler(driver.Scheduler):
         filtered_hosts = self.host_manager.get_filtered_hosts(host_states)
         # 获取称重过后的主机
         weighed_hosts = self.host_manager.get_weighed_hosts(filtered_hosts)
+        for weight_host in weighed_hosts:
+            print(weight_host.weight)
+
+
         # 称重过后得到的类型不是[HostState]，所以下面转换
         weighed_hosts = [h.obj for h in weighed_hosts]
 

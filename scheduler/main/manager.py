@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-# import sys
-# sys.path.append("/Users/jc/jcall/研究实验代码")
+import sys
+sys.path.append("..")
 
 import conf
 
@@ -34,4 +34,4 @@ if __name__ == '__main__':
     dest = schedulerManager.select_destinations()
     print("\n最后得到的所有的个数： " + str(len(dest)) + "\n")
     for hostState in dest:
-        print(hostState.description())
+        print(hostState.short_description())

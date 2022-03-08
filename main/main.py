@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import time
+import json
 import threading
 
 import sys
@@ -9,7 +10,7 @@ sys.path.append("..")
 from scheduler.main.host_state import hoststate
 from db.mysql import basic_info_upload_taskask, nessus_upload_task, upload_is_training_status, upload_ml_info
 from ml.run.magface_pyt import train
-from rabbitmq.rabbitmq import RabbitComsumer
+from rabbitmq.rabbitmq import RabbitComsumer, send_fanout_signal
 
 
 # Python3 多线程    https://www.runoob.com/python3/python3-multithreading.html
@@ -39,6 +40,8 @@ if __name__ == "__main__":
             hoststate.receive_start_train_signal = False
             if not hoststate.is_training:
                 upload_is_training_status(True)
+
+                send_fanout_signal(json.dumps({'start': True, 'epoch': -1, 'uuid': str(hoststate.uuid), "finished": False}))
                 train()
                 # hoststate.is_training 设置成False是在train那个文件中
             else:

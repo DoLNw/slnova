@@ -5,7 +5,8 @@ import conf
 from scheduler import filters
 from scheduler import weights
 from scheduler import exception
-from scheduler.main.host_state import HostState
+
+from db.mysql import get_all_hosts_infos
 
 CONF = conf.CONF
         # 规定：定义的时候，上面需要两个空行
@@ -42,16 +43,10 @@ class HostManager(object):
         # 目前测是状态是total_disk_gb要大于等于20GBs， 然后
         # total_disk_gb * disk_allocation_ratio - （然后total_disk_gb - used_disk_gb） 大于等于20GB
         # 由于disk_allocation_ratio=1，就是total_disk_gb>=20GB，used_disk_gb>=20GB。
-        host12 = HostState(used_disk_gb=12, ip="0.0.0.0", name="nullName", uuid="0000", cpu_current_freq=0,
-                           used_memory_mb=0, total_disk_gb=100, disk_allocation_ratio=1, cpu_percent=0)
-        host100 = HostState(used_disk_gb=21, ip="0.0.0.0", name="nullName", uuid="0000", cpu_current_freq=0,
-                            used_memory_mb=0, total_disk_gb=18, disk_allocation_ratio=1, cpu_percent=0)
-        host8 = HostState(used_disk_gb=22, ip="0.0.0.0", name="nullName", uuid="0000", cpu_current_freq=0,
-                          used_memory_mb=0, total_disk_gb=100, disk_allocation_ratio=1, cpu_percent=0)
-        host9 = HostState(used_disk_gb=13, ip="0.0.0.0", name="nullName", uuid="0000", cpu_current_freq=0,
-                          used_memory_mb=0, total_disk_gb=190, disk_allocation_ratio=1, cpu_percent=0)
 
-        return [host12, host100, host8, host9]
+        # 目前先用从数据库获取数据的方法吧[Doge]
+        # return [hoststate]
+        return get_all_hosts_infos()
 
     def get_filtered_hosts(self, host_states):
         """Filter hosts and return only ones passing all filters."""

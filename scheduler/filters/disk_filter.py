@@ -44,41 +44,32 @@ class DiskFilter(filters.BaseHostFilter):
         # requested_disk = (1024 * (spec_obj.root_gb +
         #                           spec_obj.ephemeral_gb) +
         #                   spec_obj.swap)
-        requested_disk_mb = 20 * 1024
-
-        free_disk_mb = host_state.used_disk_gb * 1024
-        # 总共的容量
-        total_usable_disk_mb = host_state.total_disk_gb * 1024
+        requested_disk_gb = 1.0 * 10            # 一个主机传递1g模型参数，最多10个
 
         # Do not allow an instance to overcommit against itself, only against
         # other instances.  In other words, if there isn't room for even just
         # this one instance in total_usable_disk space, consider the host full.
         # 磁盘总容量需要大于请求容量，否则不符合
-        if total_usable_disk_mb < requested_disk_mb:
+        if host_state.total_disk_gb < requested_disk_gb:
             LOG.debug("%(host_state)s does not have %(requested_disk)s "
-                      "MB usable disk space before overcommit, it only "
-                      "has %(physical_disk_size)s MB.",
+                      "GB usable disk space before overcommit, it only "
+                      "has %(physical_disk_size)s GB.",
                       {'host_state': host_state,
-                       'requested_disk': requested_disk_mb,
+                       'requested_disk': requested_disk_gb,
                        'physical_disk_size':
-                           total_usable_disk_mb})
+                           host_state.total_disk_gb})
             return False
 
-        # 应该是磁盘分配比例把，默认给1得了
-        disk_allocation_ratio = self._get_disk_allocation_ratio(host_state)
-
         # 总共可使用的容量
-        disk_mb_limit = total_usable_disk_mb * disk_allocation_ratio
-        used_disk_mb = total_usable_disk_mb - free_disk_mb   # 已经使用掉的磁盘容量
-        usable_disk_mb = disk_mb_limit - used_disk_mb
+        usable_disk_gb = host_state.total_disk_gb - host_state.used_disk_gb
 
         # 计算出来的可用>=请求的，则满足，否则不满足
-        if usable_disk_mb < requested_disk_mb:
-            LOG.debug("%(host_state)s does not have %(requested_disk)s MB "
-                    "usable disk, it only has %(usable_disk_mb)s MB usable "
+        if usable_disk_gb < requested_disk_gb:
+            LOG.debug("%(host_state)s does not have %(requested_disk)s GB "
+                    "usable disk, it only has %(usable_disk_mb)s GB usable "
                     "disk.", {'host_state': host_state,
-                               'requested_disk': requested_disk_mb,
-                               'usable_disk_mb': usable_disk_mb})
+                               'requested_disk': requested_disk_gb,
+                               'usable_disk_mb': usable_disk_gb})
             return False
 
         # disk_gb_limit = disk_mb_limit / 1024

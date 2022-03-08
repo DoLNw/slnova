@@ -20,7 +20,6 @@ https://www.cnblogs.com/shenh/p/10497244.html
 需要先启动 订阅者，此模式下的队列是 consumer 随机生成的，发布者 仅仅发布消息到 exchange ，由 exchange 转发消息至 queue。
 """
 import time
-import json
 import pika
 from pika.exceptions import ChannelClosed, ConnectionClosed
 
@@ -110,13 +109,17 @@ class RabbitMQServer(object):
 
 
 def execute(body):
-    print(body)
+    print("received message: {}".format(body))
     if body == b'start train':
         hoststate.receive_start_train_signal = True
+        return True
+    if body == b'next epoch':
+        hoststate.receive_next_epoch_train_signal = True
         return True
     # 不返回True的话，后面不发送处理成功消息，消息会返回到队列中去
     return True
     # pass
+
 
 # 消费者
 class RabbitComsumer(RabbitMQServer):
@@ -172,32 +175,28 @@ class RabbitPublisher(RabbitMQServer):
     def __init__(self, mode="fanout"):
         super(RabbitPublisher, self).__init__(mode)
 
-    def start_publish(self):
+    def start_publish(self, message):
         self.reconnect()
-        i = 1
-        while True:
-            message=json.dumps({'OrderId': i})
+        # message=json.dumps({'OrderId': i})
 
-            try:
-                # 指定 routing_key。delivery_mode = 2 声明消息在队列中持久化，delivery_mod = 1 消息非持久化
-                self.channel.basic_publish(exchange=self.exchange, routing_key=self.routing_key, body=message,
-                                           properties=pika.BasicProperties(delivery_mode=1))
-                i += 1
-                print("send successful")
-                time.sleep(2)
-            except ConnectionClosed as e:
-                self.reconnect()
-                print("ConnectionClosed")
-                time.sleep(2)
-            except ChannelClosed as e:
-                self.reconnect()
-                print("ChannelClosed")
-                time.sleep(2)
-            except Exception as e:
-                print(e)
-                self.reconnect()
-                print("Exception")
-                time.sleep(2)
+        try:
+            # 指定 routing_key。delivery_mode = 2 声明消息在队列中持久化，delivery_mod = 1 消息非持久化
+            self.channel.basic_publish(exchange=self.exchange, routing_key=self.routing_key, body=message,
+                                       properties=pika.BasicProperties(delivery_mode=1))
+            print("send successful")
+        except ConnectionClosed as e:
+            print("ConnectionClosed")
+        except ChannelClosed as e:
+            print("ChannelClosed")
+        except Exception as e:
+            print(e)
+            print("Exception")
+
+
+def send_fanout_signal(message):
+    rabbit = RabbitPublisher("fanout")
+    rabbit.start_publish(message)
+    rabbit.connection.close()
 
 if __name__ == "__main__":
     # rabbit = RabbitPublisher("direct")

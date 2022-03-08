@@ -12,7 +12,7 @@ mydb = CONF.mysql.db
 port = CONF.mysql.port
 table = CONF.mysql.table
 
-from scheduler.main.host_state import hoststate, update_basic_info, update_model_size_mb
+from scheduler.main.host_state import hoststate, update_basic_info, update_model_size_mb, format_hoststate
 from info.nessus import check_status_and_update, pre_scan, start_scan
 
 # 会自动把bool转成tinyint，0是false，1是true
@@ -294,6 +294,34 @@ def nessus_upload_task():
 
 
 
+def get_all_hosts_infos():
+    query_sql = "SELECT * FROM %s" % (table)
+
+    db = pymysql.connect(host=host, user=user, passwd=passwd, db=mydb, port=port, charset='utf8')
+    cursor = db.cursor()
+
+    try:
+        cursor.execute(query_sql)
+        datas = cursor.fetchall()
+
+        db.commit()
+        print("get hosts' info successfully")
+    except:
+        print("get hosts' info error")
+        # 输出异常信息
+        traceback.print_exc()
+        db.rollback()
+
+    # 关闭游标
+    cursor.close()
+    # 关闭数据库连接
+    db.close()
+
+    return format_hoststate(datas)
+
+
+
+
 if __name__ == '__main__':
     # 每隔1秒上传一次
     # main(1.0)
@@ -305,3 +333,16 @@ if __name__ == '__main__':
         time.sleep(10)
 
     # upload_basic_info()
+
+    #
+    # a = get_all_hosts_infos()
+    # for b in a:
+    #     print(b.description())
+
+
+
+
+
+
+
+

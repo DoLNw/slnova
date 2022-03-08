@@ -52,7 +52,7 @@ def gpu_used_memory_gb():
         if nvmlDeviceGetCount() >= 1:
             handle = nvmlDeviceGetHandleByIndex(0)
             memory_info = nvmlDeviceGetMemoryInfo(handle)
-            return memory_info.used / 1024 / 1024 / 1024
+            return memory_info.used / 1000 / 1000 / 1000
     except Exception as e:
         print(e)
     finally:
@@ -69,7 +69,7 @@ def gpu_total_memory_gb():
         if nvmlDeviceGetCount() >= 1:
             handle = nvmlDeviceGetHandleByIndex(0)
             memory_info = nvmlDeviceGetMemoryInfo(handle)
-            return memory_info.total / 1024 / 1024 / 1024
+            return memory_info.total / 1000 / 1000 / 1000
     except Exception as e:
         print(e)
     finally:
@@ -135,21 +135,21 @@ def get_cpu_max_freq():
 # 获取使用的内存空间
 def get_used_memory_gb():
     memory = psutil.virtual_memory()
-    return (memory.total - memory.available) / 1024 / 1024 / 1024
+    return (memory.total - memory.available) / 1000 / 1000 / 1000
 
 
 def get_total_memory_gb():
-    return psutil.virtual_memory().total / 1024 / 1024 / 1024
+    return psutil.virtual_memory().total / 1000 / 1000 / 1000
 
 
 # 获取使用的磁盘空间
 def get_used_disk_gb():
-    return psutil.disk_usage('/').used / 1024 / 1024 / 1024  # 以GB结尾
+    return psutil.disk_usage('/').used / 1000 / 1000 / 1000  # 以GB结尾
 
 
 # 获取磁盘的总容量
 def get_total_disk_gb():
-    return psutil.disk_usage('/').total / 1024 / 1024 / 1024
+    return psutil.disk_usage('/').total / 1000 / 1000 / 1000
 
 
 def get_cpu_percent():

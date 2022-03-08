@@ -27,7 +27,6 @@ class HostState(object):
                  accuracy=0.0,
                  # 显示的时候从0开始，存储的时候，是从1开始存储的，因为训练的时候26，101这样，为了每5次存储时首位都存储
                  epoch=-1):
-
         # 不变的基本信息
         self.uuid = uuid
         self.disk_allocation_ratio = disk_allocation_ratio
@@ -43,8 +42,6 @@ class HostState(object):
         self.gpu_total_memory_gb = gpu_total_memory_gb
         # CPU当前频率与总频率（某些cpu可以根据使用率自动调节倍频）
         self.cpu_max_freq = cpu_max_freq
-
-
 
         # 变的信息
         self.time = time
@@ -66,21 +63,77 @@ class HostState(object):
         self.accuracy = accuracy
         self.epoch = epoch
         self.is_aggregating = False
-        self.is_training = False                    # 指示机器学习是否正在执行
+        self.is_training = False  # 指示机器学习是否正在执行
 
-        self.receive_start_train_signal = False     # 指示是否收到训练任务的信号，不需要被传入数据库
+        self.receive_start_train_signal = False  # 指示是否收到训练任务的信号，不需要被传入数据库
+        self.receive_next_epoch_train_signal = False
 
     def description(self):
-            return """
-                      时间：\(self.time)
-                      cpu频率：   \(self.cpu_current_freq)GHz
-                      cpu使用率： \(String(format:"%.2f", self.cpuPercent))%
-                      磁盘分配率： \(String(format:"%.2f", self.diskAllocationRatio))
-                      磁盘总量：   \(self.totalUsableDiskGB)GB
-                      磁盘空闲总量：\(String(format:"%.2f", self.freeDiskGB))GB
-                      空闲内存：   \(self.freeMemoryMB)MB
-                      uuid：     \(self.uuid)
-                      """
+        return """
+                     uuid: {uuid}
+                     disk_allocation_ratio: {disk_allocation_ratio}
+                     name: {name}
+                     ip: {ip}
+                     total_disk_gb: {total_disk_gb}
+                     total_memory_gb: {total_memory_gb}
+                     gpu_total_memory_gb: {gpu_total_memory_gb}
+                     cpu_max_freq: {cpu_max_freq}
+                     time: {time}
+                     cpu_percent: {cpu_percent}
+                     used_disk_gb: {used_disk_gb}
+                     used_memory_gb: {used_memory_gb}
+                     gpu_used_memory_gb: {gpu_used_memory_gb}
+                     cpu_current_freq: {cpu_current_freq}
+                     high_vul: {high_vul}
+                     medium_vul: {medium_vul}
+                     low_vul: {low_vul}
+                     info_vul: {info_vul}
+                     model_size_mb: {model_size_mb}
+                     loss: {loss}
+                     accuracy: {accuracy}
+                     epoch: {epoch}
+                   """.format(uuid=self.uuid,
+                              disk_allocation_ratio=self.disk_allocation_ratio,
+                              name=self.name,
+                              ip=self.ip,
+                              total_disk_gb=self.total_disk_gb,
+                              total_memory_gb=self.total_memory_gb,
+                              gpu_total_memory_gb=self.gpu_total_memory_gb,
+                              cpu_max_freq=self.cpu_max_freq,
+                              time=self.time,
+                              cpu_percent=self.cpu_percent,
+                              used_disk_gb=self.used_disk_gb,
+                              used_memory_gb=self.used_memory_gb,
+                              gpu_used_memory_gb=self.gpu_used_memory_gb,
+                              cpu_current_freq=self.cpu_current_freq,
+                              high_vul=self.high_vul,
+                              medium_vul=self.medium_vul,
+                              low_vul=self.low_vul,
+                              info_vul=self.info_vul,
+                              model_size_mb=self.model_size_mb,
+                              loss=self.loss,
+                              accuracy=self.accuracy,
+                              epoch=self.epoch,
+                              is_aggregating=self.is_aggregating,
+                              is_training=self.is_training,
+                              receive_start_train_signal=self.receive_start_train_signal)
+
+    def short_description(self):
+        return "name: {name} uuid: {uuid}".format(name=self.name, uuid=self.uuid)
+
+
+def format_hoststate(datas):
+    host_states = []
+
+    for data in datas:
+        # if data[23]:  # 如果该机器正在训练的话，那么这个主机是需要的
+        host_states.append(HostState(data[0], data[1], data[2], data[3],
+                                    data[4], data[5], data[6], data[7],
+                                    data[8], data[9], data[10], data[11],
+                                    data[12], data[13], data[14], data[15],
+                                    data[16], data[17], data[18], data[19],
+                                    data[20], data[21]))
+    return host_states
 
 
 # 实现一个定期向数据库更新电脑参数数据
