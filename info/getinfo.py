@@ -103,7 +103,7 @@ def get_uuid():
     # uuidb = str(uuida).split('-')
     # uuidc = "".join(uuidb)
     # print(uuidc)
-    return uuid.uuid5(uuid.NAMESPACE_DNS, name)
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, name))
 
 
 def get_mac_address():
@@ -125,11 +125,11 @@ def get_ip():
 
 # 获取CPU的主要频率
 def get_cpu_current_freq():
-    return psutil.cpu_freq().current
+    return psutil.cpu_freq().current / 1000
 
 
 def get_cpu_max_freq():
-    return psutil.cpu_freq().max
+    return psutil.cpu_freq().max / 1000
 
 
 # 获取使用的内存空间

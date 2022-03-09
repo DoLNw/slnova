@@ -37,6 +37,7 @@ filter_scheduler_opts = [
           # "ServerGroupAffinityFilter",
             "DiskFilter",
             "GPURamFilter",
+            "TrainingRamFilter",
           ],
         deprecated_name="scheduler_default_filters",
         deprecated_group="DEFAULT",

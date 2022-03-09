@@ -73,7 +73,7 @@ def sql_excute(upload_sql, func_name):
                  is_aggregating, 
                  is_training) 
                  VALUES ('%s', %.2f, '%s', '%s', %.2f, %.2f, %.2f, %.2f, '%s', 
-                 %.2f, %.2f, %.2f, %.2f, %.2f, %d, %d, %d, %d, %.2f, %.2f, %.2f, %d, %d, %d)
+                 %.2f, %.2f, %.2f, %.2f, %.4f, %d, %d, %d, %d, %.2f, %.2f, %.2f, %d, %d, %d)
              """ % (table,
                     hoststate.uuid,
                     hoststate.disk_allocation_ratio,
@@ -142,7 +142,7 @@ def upload_basic_info():
                     used_disk_gb = %.2f, 
                     used_memory_gb = %.2f, 
                     gpu_used_memory_gb = %.2f, 
-                    cpu_current_freq = %.2f
+                    cpu_current_freq = %.4f
                     WHERE uuid = '%s'
                  """ % (table,
                         hoststate.time,

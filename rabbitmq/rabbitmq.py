@@ -116,6 +116,9 @@ def execute(body):
     if body == b'next epoch':
         hoststate.receive_next_epoch_train_signal = True
         return True
+    if body == b'start scheduler':
+        hoststate.receive_scheduler_signal = True
+        return True
     # 不返回True的话，后面不发送处理成功消息，消息会返回到队列中去
     return True
     # pass

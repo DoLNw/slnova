@@ -41,7 +41,7 @@ if __name__ == "__main__":
             if not hoststate.is_training:
                 upload_is_training_status(True)
 
-                send_fanout_signal(json.dumps({'start': True, 'epoch': -1, 'uuid': str(hoststate.uuid), "finished": False}))
+                send_fanout_signal(json.dumps({'start': True, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": False}))
                 train()
                 # hoststate.is_training 设置成False是在train那个文件中
             else:

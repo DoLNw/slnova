@@ -40,4 +40,4 @@ class DiskWeigher(weights.BaseHostWeigher):
     # 返回哪一个参数进行计算
     def _weigh_object(self, host_state):
         """Higher weights win.  We want spreading to be the default."""
-        return host_state.used_disk_gb
+        return host_state.total_disk_gb - host_state.used_disk_gb

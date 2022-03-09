@@ -26,7 +26,9 @@ class HostState(object):
                  loss=0.0,
                  accuracy=0.0,
                  # 显示的时候从0开始，存储的时候，是从1开始存储的，因为训练的时候26，101这样，为了每5次存储时首位都存储
-                 epoch=-1):
+                 epoch=-1,
+                 is_aggregating=False,
+                 is_training=False):
         # 不变的基本信息
         self.uuid = uuid
         self.disk_allocation_ratio = disk_allocation_ratio
@@ -62,11 +64,12 @@ class HostState(object):
         self.loss = loss
         self.accuracy = accuracy
         self.epoch = epoch
-        self.is_aggregating = False
-        self.is_training = False  # 指示机器学习是否正在执行
+        self.is_aggregating = is_aggregating
+        self.is_training = is_training  # 指示机器学习是否正在执行
 
         self.receive_start_train_signal = False  # 指示是否收到训练任务的信号，不需要被传入数据库
         self.receive_next_epoch_train_signal = False
+        self.receive_scheduler_signal = False
 
     def description(self):
         return """
@@ -132,7 +135,7 @@ def format_hoststate(datas):
                                     data[8], data[9], data[10], data[11],
                                     data[12], data[13], data[14], data[15],
                                     data[16], data[17], data[18], data[19],
-                                    data[20], data[21]))
+                                    data[20], data[21], data[22], data[23]))
     return host_states
 
 

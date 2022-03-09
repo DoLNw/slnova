@@ -24,8 +24,10 @@ import os
 import json
 from scheduler.main.host_state import hoststate
 
-from db.mysql import upload_ml_info, upload_is_training_status, upload_initial_ml_info
+from db.mysql import upload_ml_info, upload_is_training_status, upload_initial_ml_info, upload_is_aggregating_status
 from rabbitmq.rabbitmq import send_fanout_signal
+from scheduler.main.manager import SchedulerManager
+from scheduler.main.host_state import hoststate
 
 import conf
 CONF = conf.CONF
@@ -184,10 +186,32 @@ def main_worker(ngpus_per_node, args):
             ))
 
             cprint(' : save pth for epoch {}'.format(epoch+1))
-            cprint('wait next command...'.format(epoch + 1))
 
-            # 存储模型后同时发送模型，然后等待其它训练好得到新模型，然后进行下一轮epoch
-            send_fanout_signal(json.dumps({'start': False, 'epoch': epoch, 'uuid': str(hoststate.uuid), "finished": False}))
+
+
+            cprint('waiting scheduler...'.format(epoch + 1))
+            send_fanout_signal(json.dumps({'start': False, 'epoch': -1, 'scheduler': True, 'uuid': str(hoststate.uuid), "finished": False}))
+            while not hoststate.receive_scheduler_signal:
+                time.sleep(1)
+            hoststate.receive_scheduler_signal = False
+
+            # 训练完之后，大家一起计算，那计算出来的结果基本是一致的
+            # 只有得到自己是聚合节点的时候，才进行
+            # 称重之后，自己是权重最高的，自己需要当聚合的节点
+                # 存储模型后同时发送模型，然后等待其它训练好得到新模型，然后进行下一轮epoch
+            scheduler_manager = SchedulerManager()
+            dest = scheduler_manager.select_destinations()
+            print("\n最后得到的所有的个数： " + str(len(dest)) + "\n")
+            for dest_host_state in dest:
+                print(dest_host_state.short_description())
+            # 等待收集完毕，然后聚合完毕，然后发送完毕
+            if dest[0].uuid == hoststate.uuid:
+                upload_is_aggregating_status(True)
+                time.sleep(20)
+                upload_is_aggregating_status(False)
+
+            cprint('waiting for next epoch...'.format(epoch + 1))
+            send_fanout_signal(json.dumps({'start': False, 'epoch': epoch, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": False}))
             while not hoststate.receive_next_epoch_train_signal:
                 time.sleep(1)
             hoststate.receive_next_epoch_train_signal = False
@@ -196,7 +220,7 @@ def main_worker(ngpus_per_node, args):
     # 训练结束
     cprint('training is finished')
     upload_is_training_status(False)
-    send_fanout_signal(json.dumps({'start': False, 'epoch': -1, 'uuid': str(hoststate.uuid), "finished": True}))
+    send_fanout_signal(json.dumps({'start': False, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": True}))
 
 
 def do_train(train_loader, model, criterion, optimizer, epoch, args, swarmCallback=None):
@@ -224,7 +248,6 @@ def do_train(train_loader, model, criterion, optimizer, epoch, args, swarmCallba
     learning_rate.update(current_lr)
 
     for i, (input, target) in enumerate(train_loader):
-        print(i)
         # measure data loading time
         data_time.update(time.time() - end)
         global iters
