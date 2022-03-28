@@ -45,6 +45,7 @@ from pynvml import *
 #             pass
 #     return nvidia_dict["gpus"][0]["used"], nvidia_dict["gpus"][0]["total"]
 
+
 # 默认取第0个GPU
 def gpu_used_memory_gb():
     try:
@@ -62,6 +63,7 @@ def gpu_used_memory_gb():
             pass
 
     return 0.0
+
 
 def gpu_total_memory_gb():
     try:
@@ -96,14 +98,16 @@ def get_time():
 # uuid4, 随机
 # 3和5，基于md5和sha1
 def get_uuid():
-    # return uuid.uuid1()
-    # return uuid.uuid4()
-    name = uuid.UUID(int=uuid.getnode()).hex[-12:]  # 这是mac地址，所以唯一了
-    # uuida = uuid.uuid5(uuid.NAMESPACE_DNS, name)
-    # uuidb = str(uuida).split('-')
-    # uuidc = "".join(uuidb)
-    # print(uuidc)
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, name))
+    # # return uuid.uuid1()
+    # # return uuid.uuid4()
+    # name = uuid.UUID(int=uuid.getnode()).hex[-12:]  # 这是mac地址，所以唯一了
+    # # uuida = uuid.uuid5(uuid.NAMESPACE_DNS, name)
+    # # uuidb = str(uuida).split('-')
+    # # uuidc = "".join(uuidb)
+    # # print(uuidc)
+    # return str(uuid.uuid5(uuid.NAMESPACE_DNS, name))
+
+    return get_name()
 
 
 def get_mac_address():

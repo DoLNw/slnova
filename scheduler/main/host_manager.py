@@ -6,7 +6,7 @@ from scheduler import filters
 from scheduler import weights
 from scheduler import exception
 
-from db.mysql import get_all_hosts_infos
+from db.mysql import get_all_hosts_info
 
 CONF = conf.CONF
         # 规定：定义的时候，上面需要两个空行
@@ -46,7 +46,7 @@ class HostManager(object):
 
         # 目前先用从数据库获取数据的方法吧[Doge]
         # return [hoststate]
-        return get_all_hosts_infos()
+        return get_all_hosts_info()
 
     def get_filtered_hosts(self, host_states):
         """Filter hosts and return only ones passing all filters."""

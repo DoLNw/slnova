@@ -22,10 +22,11 @@ import time
 import pprint
 import os
 import json
+import base64
 from scheduler.main.host_state import hoststate
 
-from db.mysql import upload_ml_info, upload_is_training_status, upload_initial_ml_info, upload_is_aggregating_status
-from rabbitmq.rabbitmq import send_fanout_signal
+from db.mysql import upload_ml_info, upload_is_training_status, upload_initial_ml_info, upload_is_aggregating_status, get_all_training_host_uuids
+from rabbitmq.rabbitmq import ExchangeType, send_rabbitmq_message
 from scheduler.main.manager import SchedulerManager
 from scheduler.main.host_state import hoststate
 
@@ -174,27 +175,28 @@ def main_worker(ngpus_per_node, args):
 
             # cprint('pth_save_fold: {}'.format(args.pth_save_fold))
             # 第二种方式存储，所以取出来的时候没有网络结构
+            file_name = os.path.join(
+                args.pth_save_fold, '{}.pth'.format(
+                    str(epoch+1).zfill(5))
+            )
             utils.save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
                 'state_dict': state_dict,
                 'optimizer': optimizer.state_dict(),
-            }, False,
-                filename=os.path.join(
-                args.pth_save_fold, '{}.pth'.format(
-                    str(epoch+1).zfill(5))
-            ))
+            }, False, filename=file_name)
 
             cprint(' : save pth for epoch {}'.format(epoch+1))
 
 
-
+            send_rabbitmq_message(json.dumps({'start': False, 'epoch': -1, 'scheduler': True, 'uuid': str(hoststate.uuid), "finished": False}), ExchangeType.FANOUT)
+            # 等待所有主机训练结束，然后收到开始调度的通知
             cprint('waiting scheduler...'.format(epoch + 1))
-            send_fanout_signal(json.dumps({'start': False, 'epoch': -1, 'scheduler': True, 'uuid': str(hoststate.uuid), "finished": False}))
             while not hoststate.receive_scheduler_signal:
                 time.sleep(1)
             hoststate.receive_scheduler_signal = False
 
+            # 开始调度
             # 训练完之后，大家一起计算，那计算出来的结果基本是一致的
             # 只有得到自己是聚合节点的时候，才进行
             # 称重之后，自己是权重最高的，自己需要当聚合的节点
@@ -202,16 +204,65 @@ def main_worker(ngpus_per_node, args):
             scheduler_manager = SchedulerManager()
             dest = scheduler_manager.select_destinations()
             print("\n最后得到的所有的个数： " + str(len(dest)) + "\n")
+
             for dest_host_state in dest:
                 print(dest_host_state.short_description())
-            # 等待收集完毕，然后聚合完毕，然后发送完毕
-            if dest[0].uuid == hoststate.uuid:
+
+            aggregate_host_uuid = dest[0].uuid
+
+            # 如果那个聚合节点的不是自己
+            if aggregate_host_uuid != hoststate.uuid:
+                # model_file = open(file_name, "rb").read()
+                model_file = open("/root/autodl-nas/my-swarm-learning.zip", "rb").read()
+                encode_str = base64.b64encode(model_file)
+                send_rabbitmq_message(encode_str, ExchangeType.DIRECT, aggregate_host_uuid)
+
+                # 判断是否收到了更新的模型，若收到了，则
+                while not hoststate.receive_update_model:
+                    time.sleep(1)
+                hoststate.receive_update_model = False
+            else:
+                # 等待收集完毕，然后聚合完毕，然后发送完毕
                 upload_is_aggregating_status(True)
-                time.sleep(20)
+                # 收集所有的模型
+                # 进行更新
+                # 分发更新的数据库
+
+                # 有没有收集完毕，收集的model的数目就是current_training_hosts_num
+                count = 0
+                current_training_host_uuids = get_all_training_host_uuids()
+                current_training_hosts_num = len(current_training_host_uuids)
+                while hoststate.receive_all_model_files < current_training_hosts_num - 1:
+                    time.sleep(1)
+                    count += 1
+                    # 每60秒在判断一次目前还有多少主机正在运行s
+                    if count >= 60:
+                        count = 0
+                        current_training_host_uuids = get_all_training_host_uuids()
+                        current_training_hosts_num = len(current_training_host_uuids)
+                hoststate.receive_all_model_files = 0
+
+                # 此处留白，模型参数融合算法
+
+
+                # 更新后的模型参数分发给其他的主机，当前假设更新后的模型名字是my-swarm-learning.zip
+                model_file = open("/root/autodl-nas/my-swarm-learning.zip", "rb").read()
+                encode_str = base64.b64encode(model_file)
+
+                for uuid in current_training_host_uuids:
+                    if uuid != hoststate.uuid:
+                        send_rabbitmq_message(encode_str, ExchangeType.DIRECT, uuid)
+
+
                 upload_is_aggregating_status(False)
 
+
+
+
+
+            # 等待聚合节点分发更新后的参数模型，等待更新完之后，进行下一次的训练
             cprint('waiting for next epoch...'.format(epoch + 1))
-            send_fanout_signal(json.dumps({'start': False, 'epoch': epoch, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": False}))
+            send_rabbitmq_message(json.dumps({'start': False, 'epoch': epoch, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": False}), ExchangeType.FANOUT)
             while not hoststate.receive_next_epoch_train_signal:
                 time.sleep(1)
             hoststate.receive_next_epoch_train_signal = False
@@ -220,7 +271,7 @@ def main_worker(ngpus_per_node, args):
     # 训练结束
     cprint('training is finished')
     upload_is_training_status(False)
-    send_fanout_signal(json.dumps({'start': False, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": True}))
+    send_rabbitmq_message(json.dumps({'start': False, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": True}), ExchangeType.FANOUT)
 
 
 def do_train(train_loader, model, criterion, optimizer, epoch, args, swarmCallback=None):

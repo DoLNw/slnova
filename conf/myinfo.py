@@ -20,14 +20,14 @@ nessus_group = cfg.OptGroup(name="nessus",
 
 nessus_opts = [
     cfg.StrOpt("scanned_ip",
-        default="116.62.233.27",
+        default="124.222.48.192",
         # default="114.55.95.44",
         deprecated_group="DEFAULT",
         help="""
         扫描不同的IP时需要更改
         """),
     cfg.StrOpt("nessus_url",
-        default="https://116.62.233.27:8834",
+        default="https://124.222.48.192:8834",
         deprecated_group="DEFAULT",
         help="""
         """),
@@ -58,7 +58,7 @@ mysql_group = cfg.OptGroup(name="mysql",
 
 mysql_opts = [
     cfg.StrOpt("host",
-        default="116.62.233.27",
+        default="124.222.48.192",
         deprecated_group="DEFAULT",
         help="""
         """),

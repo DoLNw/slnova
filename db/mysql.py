@@ -12,6 +12,9 @@ mydb = CONF.mysql.db
 port = CONF.mysql.port
 table = CONF.mysql.table
 
+import threading
+lock = threading.Lock()
+
 from scheduler.main.host_state import hoststate, update_basic_info, update_model_size_mb, format_hoststate
 from info.nessus import check_status_and_update, pre_scan, start_scan
 
@@ -43,6 +46,25 @@ new_table_sql = """create table if not exists test(
                    is_training bool not null default False,
                    primary key(uuid))
                 """
+
+
+
+
+def reconnect():
+    global db
+    global cursor
+    # 要每一次打开一下的好，因为不然的话，数据库临时关闭之后，就出错了吧？
+    # 打开数据库连接
+    db = pymysql.connect(host=host, user=user, passwd=passwd, db=mydb, port=port, charset='utf8')
+    # db = pymysql.connect(host='127.0.0.1', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
+    # 使用cursor()方法获取操作游标
+    cursor = db.cursor()
+
+
+first_init = True
+if first_init:
+    first_init = False
+    reconnect()
 
 
 def sql_excute(upload_sql, func_name):
@@ -101,14 +123,8 @@ def sql_excute(upload_sql, func_name):
                     hoststate.is_training
                     )
 
-    # 要每一次打开一下的好，因为不然的话，数据库临时关闭之后，就出错了吧？
-    # 打开数据库连接
-    db = pymysql.connect(host=host, user=user, passwd=passwd, db=mydb, port=port, charset='utf8')
-    # db = pymysql.connect(host='127.0.0.1', user='root', passwd='971707', db='slnova', port=3306, charset='utf8')
-    # 使用cursor()方法获取操作游标
-    cursor = db.cursor()
-
     try:
+        lock.acquire()
         cursor.execute(new_table_sql)  # 已经创建了我就注释掉得了，毕竟需要占用点cpu的
         cursor.execute(query_sql)
         data = cursor.fetchone()
@@ -116,21 +132,27 @@ def sql_excute(upload_sql, func_name):
             cursor.execute(upload_sql)
         else:  # 否则，添加
             cursor.execute(add_sql)
+
         #    cursor.execute(del_sql)
         # cursor.execute(add_sql)     # 添加是一定需要的，删除的话，是需要数据库有数据的时候才删除它
-
         db.commit()
+
         # print("{} successfully".format(func_name))
     except:
         print("{} error".format(func_name))
         # 输出异常信息
         traceback.print_exc()
-        db.rollback()
+        # db.rollback()
 
-    # 关闭游标
-    cursor.close()
-    # 关闭数据库连接
-    db.close()
+        # 若是被关闭了，则重新等待链接，直接成功呗s
+        reconnect()
+    finally:
+        lock.release()
+
+    # # 关闭游标
+    # cursor.close()
+    # # 关闭数据库连接
+    # db.close()
 
 
 def upload_basic_info():
@@ -184,7 +206,7 @@ def upload_is_aggregating_status(is_aggregating):
     upload_sql = "UPDATE %s SET is_aggregating = %d WHERE uuid = '%s'" % \
                  (table, hoststate.is_aggregating, hoststate.uuid)
 
-    sql_excute(upload_sql, "is_aggregating")
+    sql_excute(upload_sql, "upload_is_aggregating_status")
 
 
 def upload_initial_ml_info():
@@ -294,32 +316,69 @@ def nessus_upload_task():
 
 
 
-def get_all_hosts_infos():
+def get_all_hosts_info():
     query_sql = "SELECT * FROM %s" % (table)
 
-    db = pymysql.connect(host=host, user=user, passwd=passwd, db=mydb, port=port, charset='utf8')
-    cursor = db.cursor()
+    reconnect()
 
     try:
+        lock.acquire()
         cursor.execute(query_sql)
         datas = cursor.fetchall()
-
         db.commit()
-        print("get hosts' info successfully")
+        print("get_all_hosts_info successfully")
     except:
-        print("get hosts' info error")
+        print("get_all_hosts_info error")
         # 输出异常信息
         traceback.print_exc()
-        db.rollback()
+        # db.rollback()
+    finally:
+        lock.release()
 
-    # 关闭游标
-    cursor.close()
-    # 关闭数据库连接
-    db.close()
+    # # 关闭游标
+    # cursor.close()
+    # # 关闭数据库连接
+    # db.close()
 
     return format_hoststate(datas)
 
 
+def get_all_training_host_uuids():
+    query_sql = "SELECT * FROM %s" % (table)
+    reconnect()
+
+    try:
+        lock.acquire()
+        cursor.execute(query_sql)
+        datas = cursor.fetchall()
+        db.commit()
+
+
+        print("get_all_training_hosts_num successfully")
+    except:
+        print("get hosts' info error")
+        # 输出异常信息
+        traceback.print_exc()
+        # db.rollback()
+    finally:
+        lock.release()
+
+    # # 关闭游标
+    # cursor.close()
+    # # 关闭数据库连接
+    # db.close()
+
+    host_states = format_hoststate(datas)
+    current_training_host_state_uuids = []
+
+    # 假设没有别的current_training_hosts_num属性为true但是不在运行的情况
+    current_training_hosts_num = 0
+    for host_state in host_states:
+        if host_state.is_training:
+            current_training_hosts_num += 1
+            current_training_host_state_uuids.append(host_state.uuid)
+
+    return current_training_host_state_uuids
 
 
 if __name__ == '__main__':
@@ -335,7 +394,7 @@ if __name__ == '__main__':
     # upload_basic_info()
 
     #
-    # a = get_all_hosts_infos()
+    # a = get_all_hosts_info()
     # for b in a:
     #     print(b.description())
 

@@ -3,7 +3,7 @@ from oslo_config import cfg
 rabbitmq_group = cfg.OptGroup(name="rabbitmq", title="rabbitmq options")
 
 rabbitmq_opts = [
-    cfg.StrOpt("hostname", default="116.62.233.27"),
+    cfg.StrOpt("hostname", default="124.222.48.192"),
     cfg.IntOpt("port", default=5672),
     cfg.StrOpt("vhost", default="vhost"),
     cfg.StrOpt("username", default="rabbit",),
@@ -14,7 +14,7 @@ rabbitmq_opts = [
     cfg.StrOpt("fanout_routing_key", default=""),
 
     cfg.StrOpt("direct_exchange", default="ml_direct_exchange"),
-    cfg.StrOpt("direct_queue", default="ml_direct_ququq"),
+    cfg.StrOpt("direct_queue", default="ml_direct_queue"),
     cfg.StrOpt("direct_routing_key", default="ml_direct_routing_key"),
 ]
 

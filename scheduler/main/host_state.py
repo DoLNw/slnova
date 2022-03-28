@@ -70,6 +70,8 @@ class HostState(object):
         self.receive_start_train_signal = False  # 指示是否收到训练任务的信号，不需要被传入数据库
         self.receive_next_epoch_train_signal = False
         self.receive_scheduler_signal = False
+        self.receive_all_model_files = 0         # 个数等于当前训练的主机的个数的时候，才进行融合
+        self.receive_update_model = False
 
     def description(self):
         return """
