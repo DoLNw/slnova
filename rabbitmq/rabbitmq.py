@@ -37,6 +37,12 @@ import conf
 CONF = conf.CONF
 from scheduler.main.host_state import hoststate
 
+save_aggre_model_fold_path = CONF.rabbitmq.save_aggre_model_fold_path
+model_save_fold = CONF.rabbitmq.model_save_fold
+model_save_fold += "/" + hoststate.uuid
+suffix = CONF.rabbitmq.suffix
+prefix = CONF.rabbitmq.prefix
+
 class ExchangeType(Enum):
     FANOUT = "fanout"
     DIRECT = "direct"
@@ -123,11 +129,7 @@ class RabbitMQServer(object):
         except Exception as e:
             print(e)
 
-
-i = 0
-
-
-def fanout_execute(mode, body):
+def message_execute(mode, body):
     if mode == ExchangeType.FANOUT:
         print("received message: {}".format(body))
         if body == b'start train':
@@ -140,15 +142,27 @@ def fanout_execute(mode, body):
             hoststate.receive_scheduler_signal = True
             return True
     else:
-        global i
         # direct传输的数据，直接返回
-        decodeFile = open("../../{}.pth".format(i), "wb+")
-        i += 1
-        decodeFile.write(base64.b64decode(body))
-        decodeFile.close()
-        print("received direct file successfully")
-        hoststate.receive_all_model_files += 1
-        hoststate.receive_update_model = True     # 接收更新后的模型，和接收其它的模型不冲突
+
+        if not hoststate.aggreNode:
+            # 如果不是聚合节点，收到了更新的模型
+            decodeFile = open(
+                "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix), "wb+")
+            decodeFile.write(base64.b64decode(body))
+            decodeFile.close()
+            hoststate.receive_update_model = True
+            print("saved updated model to {} successfully".format("{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix)))
+        else:
+            # 参数文件名字从0开始，aggre路径/{prefix}{个数}-{epoch}.{params}，{prefix}{个数}当作prefix
+            decodeFile = open(
+                "{0}/{1}{2}-{3}.{4}".format(save_aggre_model_fold_path, prefix, hoststate.receive_all_model_files,
+                                            "%04d" % hoststate.epoch, suffix), "wb+")
+            decodeFile.write(base64.b64decode(body))
+            decodeFile.close()
+            hoststate.receive_all_model_files += 1
+            print("received {} model(s) successfully".format(hoststate.receive_all_model_files))
+
+
         return True
 
     # 不返回True的话，后面不发送处理成功消息，消息会返回到队列中去
@@ -162,7 +176,7 @@ class RabbitComsumer(RabbitMQServer):
         super(RabbitComsumer, self).__init__(mode)
 
     def consumer_callback(self, channel, method, properties, body):
-        result = fanout_execute(self.mode, body)  # 模拟处理消息
+        result = message_execute(self.mode, body)  # 模拟处理消息
         if channel.is_open:
             if result:
                 channel.basic_ack(delivery_tag=method.delivery_tag)
@@ -219,8 +233,8 @@ class RabbitPublisher(RabbitMQServer):
             # 指定 routing_key。delivery_mode = 2 声明消息在队列中持久化，delivery_mod = 1 消息非持久化
             self.channel.basic_publish(exchange=self.exchange, routing_key=routing_key, body=message,
                                        properties=pika.BasicProperties(delivery_mode=1))
-            if self.mode == ExchangeType.DIRECT:
-                print("send_rabbitmq_message(encode_str, {0}, {1}) successfully".format(ExchangeType.DIRECT.value, routing_key))
+            if self.mode == ExchangeType.DIRECT: # 目前direct的信息传递只有传递模型参数
+                print("({2}): send model from {0} to {1} successfully.".format(hoststate.uuid, routing_key, ExchangeType.DIRECT.value))
         except ConnectionClosed as e:
             print("ConnectionClosed")
         except ChannelClosed as e:

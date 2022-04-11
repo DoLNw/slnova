@@ -5,6 +5,7 @@
 *.jpg
 
 ml/data/*
+STN_mxnet/data/*
 
 *.txt
 *.csv

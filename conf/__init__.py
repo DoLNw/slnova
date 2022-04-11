@@ -25,6 +25,7 @@ from conf import scheduler
 from conf import myinfo
 from conf import rabbitmq
 from conf import magface_pyt
+from conf import STN_mxnet
 
 CONF = cfg.CONF
 
@@ -32,6 +33,6 @@ scheduler.register_opts(CONF)
 myinfo.register_opts(CONF)
 rabbitmq.register_opts(CONF)
 magface_pyt.register_opts(CONF)
-
+STN_mxnet.register_opts(CONF)
 
 # remote_debug.register_cli_opts(CONF)

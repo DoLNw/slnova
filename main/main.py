@@ -8,9 +8,10 @@ import sys
 sys.path.append("..")
 
 from scheduler.main.host_state import hoststate
-from db.mysql import nessus_upload_task, basic_info_upload_taskask, upload_is_training_status, upload_ml_info, upload_basic_info, upload_is_aggregating_status
-from ml.run.magface_pyt import train
+from db.mysql import nessus_upload_task, basic_info_upload_taskask, upload_is_training_status, upload_ml_info, upload_basic_info, upload_is_aggregating_status, upload_initial_ml_info
+# from ml.run.magface_pyt import train
 from rabbitmq.rabbitmq import RabbitComsumer, send_rabbitmq_message, ExchangeType
+from STN_mxnet.STN_mxnet import training
 
 
 # Python3 多线程    https://www.runoob.com/python3/python3-multithreading.html
@@ -71,7 +72,9 @@ if __name__ == "__main__":
                 upload_is_training_status(True)
 
                 send_rabbitmq_message(json.dumps({'start': True, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": False}), ExchangeType.FANOUT)
-                train()
+                # train()
+                upload_initial_ml_info()
+                training(201)
                 # hoststate.is_training 设置成False是在train那个文件中
             else:
                 print("当前存在训练，无法开启新的训练")

@@ -23,8 +23,8 @@ import pprint
 import os
 import json
 import base64
-from scheduler.main.host_state import hoststate
 
+from scheduler.main.host_state import hoststate
 from db.mysql import upload_ml_info, upload_is_training_status, upload_initial_ml_info, upload_is_aggregating_status, get_all_training_host_uuids
 from rabbitmq.rabbitmq import ExchangeType, send_rabbitmq_message
 from scheduler.main.manager import SchedulerManager

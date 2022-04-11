@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-import sys
-sys.path.append("..")
-
 from ml.utils import cv2_trans as transforms
 from termcolor import cprint
 import cv2
@@ -13,7 +10,8 @@ import numpy as np
 import os
 import warnings
 
-current_dir_name = os.path.dirname(__file__)
+# # 本来用的相对路径，现在list中全部用绝对路径了
+# current_dir_name = os.path.dirname(__file__)
 
 class MagTrainDataset(data.Dataset):
     def __init__(self, ann_file, transform=None):
@@ -29,7 +27,9 @@ class MagTrainDataset(data.Dataset):
         with open(self.ann_file) as f:
             for line in f.readlines():
                 data = line.strip().split(' ')
-                self.im_names.append(current_dir_name + "/" + data[0])
+                # # 本来用的相对路径，现在list中全部用绝对路径了
+                # self.im_names.append(current_dir_name + "/" + data[0])
+                self.im_names.append(data[0])
                 self.targets.append(int(data[2]))
 
     def __getitem__(self, index):

@@ -72,6 +72,7 @@ class HostState(object):
         self.receive_scheduler_signal = False
         self.receive_all_model_files = 0         # 个数等于当前训练的主机的个数的时候，才进行融合
         self.receive_update_model = False
+        self.aggreNode = False
 
     def description(self):
         return """
