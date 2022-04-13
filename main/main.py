@@ -3,15 +3,28 @@
 import time
 import json
 import threading
+import atexit
 
 import sys
 sys.path.append("..")
 
 from scheduler.main.host_state import hoststate
-from db.mysql import nessus_upload_task, basic_info_upload_taskask, upload_is_training_status, upload_ml_info, upload_basic_info, upload_is_aggregating_status, upload_initial_ml_info
+from db.mysql import nessus_upload_task, basic_info_upload_taskask, upload_is_training_status, upload_ml_info, upload_basic_info, upload_is_aggregating_status
 # from ml.run.magface_pyt import train
 from rabbitmq.rabbitmq import RabbitComsumer, send_rabbitmq_message, ExchangeType
 from STN_mxnet.STN_mxnet import training
+
+
+# atexit模块的主要作用是在程序即将结束之间执行的代码。比如使用ctrl+c
+# 注册
+@atexit.register
+def clean():
+    # upload_ml_info()
+    upload_is_training_status(False)
+    upload_is_aggregating_status(False)
+
+    print("stoped training...")
+
 
 
 # Python3 多线程    https://www.runoob.com/python3/python3-multithreading.html
@@ -45,7 +58,7 @@ class UploadBasicInfoThread(threading.Thread):
 
 
 if __name__ == "__main__":
-    print(hoststate.uuid)
+    print("{0} init successfully!".format(hoststate.uuid))
     fanout_rabbitmq_thread = RabbitmqThread(1, "fanout_rabbitmq_thread", ExchangeType.FANOUT, "")
     fanout_rabbitmq_thread.start()
 
@@ -59,6 +72,7 @@ if __name__ == "__main__":
     upload_basic_info_thread = UploadBasicInfoThread(1, "direct_rabbitmq_thread")
     upload_basic_info_thread.start()
 
+    # ml的一些参数的初始化
     upload_ml_info()
     upload_is_training_status(False)
     upload_is_aggregating_status(False)
@@ -73,11 +87,12 @@ if __name__ == "__main__":
 
                 send_rabbitmq_message(json.dumps({'start': True, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": False}), ExchangeType.FANOUT)
                 # train()
-                upload_initial_ml_info()
-                training(201)
+                upload_ml_info()
+                training()
                 # hoststate.is_training 设置成False是在train那个文件中
             else:
                 print("当前存在训练，无法开启新的训练")
         time.sleep(10)
+
 
 

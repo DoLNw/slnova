@@ -208,20 +208,6 @@ def upload_is_aggregating_status(is_aggregating):
 
     sql_excute(upload_sql, "upload_is_aggregating_status")
 
-
-def upload_initial_ml_info():
-    # 这些是需要更改的，有些参数不需要更改，我就不再更改了，比如当前IP，uuid等信息。
-    hoststate.loss = 0.00
-    hoststate.accuracy = 0.00
-    hoststate.epoch = -1
-    hoststate.model_size_mb = 0.00
-
-    upload_sql = "UPDATE %s SET model_size_mb = %.2f, loss = %.4f, accuracy = %.4f, epoch = %d WHERE uuid = '%s'" % \
-                 (table, hoststate.model_size_mb, hoststate.loss, hoststate.accuracy, hoststate.epoch, hoststate.uuid)
-
-    sql_excute(upload_sql, "upload_initial_ml_info")
-
-
 def upload_ml_info(loss=0.0, accuracy=0.0, epoch=-1, model_path=""):
     # 这些是需要更改的，有些参数不需要更改，我就不再更改了，比如当前IP，uuid等信息。
     hoststate.loss = loss
@@ -273,7 +259,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 def basic_info_upload_taskask():
     sched = BackgroundScheduler(timezone='MST')
     # 如果有多个任务序列的话可以给每个任务设置ID号，可以根据ID号选择清除对象，且remove放到start前才有效
-    sched.add_job(upload_basic_info, 'interval', seconds=1, id='upload_basic_info_id')
+    sched.add_job(upload_basic_info, 'interval', seconds=1, id='upload_basic_info_id', max_instances=3)
     # sched.remove_job('upload_basic_info_id')
     sched.start()
 

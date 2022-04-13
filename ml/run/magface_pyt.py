@@ -25,7 +25,7 @@ import json
 import base64
 
 from scheduler.main.host_state import hoststate
-from db.mysql import upload_ml_info, upload_is_training_status, upload_initial_ml_info, upload_is_aggregating_status, get_all_training_host_uuids
+from db.mysql import upload_ml_info, upload_is_training_status, upload_is_aggregating_status, get_all_training_host_uuids
 from rabbitmq.rabbitmq import ExchangeType, send_rabbitmq_message
 from scheduler.main.manager import SchedulerManager
 from scheduler.main.host_state import hoststate
@@ -377,7 +377,7 @@ def debug_info(x_norm, l_a, u_a, l_margin, u_margin):
 
 def train():
     # 训练前，初始化ml的信息
-    upload_initial_ml_info()
+    upload_ml_info()
 
     main(args)
 
