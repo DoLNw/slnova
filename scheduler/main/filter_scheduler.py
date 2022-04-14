@@ -6,11 +6,11 @@ from scheduler.main import driver
 # 基于Scheduler实现的调度类，用这个类来进行调度
 class FilterScheduler(driver.Scheduler):
     def __init__(self, *args, **kwargs):
-        print("%d %s     %-20s   %-30s" % (2, "func", "filter_scheduler.py", "FilterScheduler __init__"))
+        # print("%d %s     %-20s   %-30s" % (2, "func", "filter_scheduler.py", "FilterScheduler __init__"))
         super(FilterScheduler, self).__init__(*args, **kwargs)
 
     def select_destinations(self):
-        print("%d %s     %-20s   %-30s" % (2, "func", "filter_scheduler.py", "select_destinations"))
+        # print("%d %s     %-20s   %-30s" % (2, "func", "filter_scheduler.py", "select_destinations"))
         """Returns a sorted list of HostState objects that satisfy the
                 supplied request_spec.
         """
@@ -20,7 +20,7 @@ class FilterScheduler(driver.Scheduler):
         return selected_hosts
 
     def _schedule(self):
-        print("%d %s     %-20s   %-30s" % (2, "func", "filter_scheduler.py", "_schedule"))
+        # print("%d %s     %-20s   %-30s" % (2, "func", "filter_scheduler.py", "_schedule"))
         """Returns a list of hosts that meet the required specs, ordered by
                 their fitness.
         """
@@ -33,14 +33,14 @@ class FilterScheduler(driver.Scheduler):
         return hosts
 
     def _get_all_host_states(self):
-        print("%d %s     %-20s   %-30s" % (3, "func", "filter_scheduler.py", "_get_all_host_states"))
+        # print("%d %s     %-20s   %-30s" % (3, "func", "filter_scheduler.py", "_get_all_host_states"))
 
         # 注意，这个其实是需要返回所有   正在运行  的主机的状态
         # 调用host_manager的方法，获取所有主机的各种状态
         return self.host_manager.get_all_host_states()
 
     def _get_sorted_hosts(self, host_states):
-        print("%d %s     %-20s   %-30s" % (3, "func", "filter_scheduler.py", "_get_sorted_hosts"))
+        # print("%d %s     %-20s   %-30s" % (3, "func", "filter_scheduler.py", "_get_sorted_hosts"))
 
         # 调用host_manager的方法，获取筛选过后的主机
         filtered_hosts = self.host_manager.get_filtered_hosts(host_states)

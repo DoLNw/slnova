@@ -12,7 +12,7 @@ CONF = conf.CONF
         # 规定：定义的时候，上面需要两个空行
 class HostManager(object):
     def __init__(self):
-        print("%d %s     %-20s   %-30s" % (2, "func", "host_manager.py", "HostManager __init__"))
+        # print("%d %s     %-20s   %-30s" % (2, "func", "host_manager.py", "HostManager __init__"))
 
         self.filter_handler = filters.HostFilterHandler()
         filter_classes = self.filter_handler.get_matching_classes(
@@ -27,7 +27,7 @@ class HostManager(object):
         self.weighers = [cls() for cls in weigher_classes]
 
     def get_all_host_states(self):
-        print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "get_all_host_states"))
+        # print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "get_all_host_states"))
         """Returns a generator of HostStates that represents all the hosts
         the HostManager knows about. Also, each of the consumable resources
         in HostState are pre-populated and adjusted based on data in the db.
@@ -36,7 +36,7 @@ class HostManager(object):
         return self._get_host_states()
 
     def _get_host_states(self):
-        print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "_get_host_states"))
+        # print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "_get_host_states"))
 
         # hostState = HostState()
         # hostState.cpu_current_freq = getinfo.get_cpu_current_freq()
@@ -50,21 +50,21 @@ class HostManager(object):
 
     def get_filtered_hosts(self, host_states):
         """Filter hosts and return only ones passing all filters."""
-        print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "get_filtered_hosts"))
+        # print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "get_filtered_hosts"))
 
         return self.filter_handler.get_filtered_objects(self.enabled_filters, host_states)
 
     def get_weighed_hosts(self, filtered_hosts):
-        print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "get_weighed_hosts"))
+        # print("%d %s     %-20s   %-30s" % (4, "func", "host_manager.py", "get_weighed_hosts"))
 
         return self.weight_handler.get_weighed_objects(self.weighers, filtered_hosts)
 
     def _load_filters(self):
-        print("%d %s     %-20s   %-30s" % (2, "func", "host_manager.py", "_load_filters"))
+        # print("%d %s     %-20s   %-30s" % (2, "func", "host_manager.py", "_load_filters"))
         return CONF.filter_scheduler.enabled_filters
 
     def _choose_host_filters(self, filter_cls_names):
-        print("%d %s     %-20s   %-30s" % (2, "func", "host_manager.py", "_choose_host_filters"))
+        # print("%d %s     %-20s   %-30s" % (2, "func", "host_manager.py", "_choose_host_filters"))
         """Since the caller may specify which filters to use we need
         to have an authoritative list of what is permissible. This
         function checks the filter names against a predefined set

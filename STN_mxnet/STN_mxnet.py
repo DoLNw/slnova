@@ -7,6 +7,7 @@ import numpy as np
 import mxnet as mx
 import base64
 import os
+
 import shutil
 from termcolor import cprint
 
@@ -14,7 +15,7 @@ from STN_mxnet.utils_4n0_3layer_12T_res import (construct_model, generate_data,
                        masked_mae_np, masked_mape_np, masked_mse_np)
 
 from db.mysql import upload_ml_info, upload_is_training_status, upload_is_aggregating_status, get_all_training_host_uuids
-from rabbitmq.rabbitmq import ExchangeType, send_rabbitmq_message
+from rabbitmq import rabbitmq
 from scheduler.main.manager import SchedulerManager
 from scheduler.main.host_state import hoststate
 
@@ -79,7 +80,7 @@ def training():
             x = x[: 100]
             y = y[: 100]
         y = y.squeeze(axis=-1)
-        print(x.shape, y.shape)
+        # print(x.shape, y.shape)
         loaders.append(
             mx.io.NDArrayIter(
                 x, y if idx == 0 else None,
@@ -135,7 +136,7 @@ def training():
     for param_name, param_value in mod.get_params()[0].items():
         # print(param_name, param_value.shape)
         num_of_parameters += np.prod(param_value.shape)
-    print("Number of Parameters: {}".format(num_of_parameters), flush=True)
+    # print("Number of Parameters: {}".format(num_of_parameters), flush=True)
 
     metric = mx.metric.create(['RMSE', 'MAE'], output_names=['pred_output'])
 
@@ -162,16 +163,16 @@ def training():
             mod.update()
         metric_values = dict(zip(*metric.get()))
 
-        print('training: Epoch: %s, RMSE: %.2f, MAE: %.2f, time: %.2f s' % (
+        cprint('training: Epoch: %s, RMSE: %.2f, MAE: %.2f, time: %.2f s' % (
             global_epoch, metric_values['rmse'], metric_values['mae'],
-            time.time() - t), flush=True)
+            time.time() - t), "cyan", flush=True)
         info.append(metric_values['mae'])
 
         val_loader.reset()
         prediction = mod.predict(val_loader)[1].asnumpy()
         loss = masked_mae_np(val_y, prediction, 0)
-        print('validation: Epoch: %s, loss: %.2f, time: %.2f s' % (
-            global_epoch, loss, time.time() - t), flush=True)
+        cprint('validation: Epoch: %s, loss: %.2f, time: %.2f s' % (
+            global_epoch, loss, time.time() - t), "cyan", flush=True)
         info.append(loss)
 
 
@@ -211,7 +212,18 @@ def training():
 
 
 
-# 在训练中添加这三个方法
+"""
+termcolor 支持以下颜色：
+grey, red, green, yellow, blue, magenta, cyan, white
+
+支持以下以下背景高亮：
+on_grey, on_red, on_green, on_yellow, on_blue, on_magenta, on_cyan, on_white
+
+支持以下属性：
+bold, dark, underline, blink, reverse, concealed
+"""
+
+# 在训练中添加这三个方法，注意最上面还要添加import方法
 # 训练前的更新信息方法，写在了main.py中
 # 每一次训练结束之后，需要更新信息
 def sl_epoch_end(loss):
@@ -221,13 +233,12 @@ def sl_epoch_end(loss):
 # 若到达一定训练轮数之后，进行参数聚合
 def sl_aggre(mod):
     mod.save_checkpoint('{}/STN'.format(model_save_fold), global_epoch)
-    cprint('saved model to {0}/STN-{1}.params'.format(model_save_fold, "%04d" % global_epoch))
+    cprint('saved model to {0}/STN-{1}.params'.format(model_save_fold, "%04d" % global_epoch), "magenta") # 一定轮数后存储模型，然后聚合
 
-    send_rabbitmq_message(json.dumps(
-        {'start': False, 'epoch': -1, 'scheduler': True, 'uuid': str(hoststate.uuid), "finished": False}),
-        ExchangeType.FANOUT)
+    rabbitmq.send_waiting_scheduler_message()
+
     # 等待所有主机训练结束，然后收到开始调度的通知
-    cprint('waiting scheduler...')
+    cprint('waiting scheduler...', "white", "on_grey")
     while not hoststate.receive_scheduler_signal:
         time.sleep(1)
     hoststate.receive_scheduler_signal = False
@@ -239,7 +250,7 @@ def sl_aggre(mod):
     # 存储模型后同时发送模型，然后等待其它训练好得到新模型，然后进行下一轮epoch
     scheduler_manager = SchedulerManager()
     dest = scheduler_manager.select_destinations()
-    print("\n最后得到的所有的个数： " + str(len(dest)) + "\n")
+    cprint("\n调度得到的所有的个数： " + str(len(dest)) + "\n", "white")
 
     for dest_host_state in dest:
         print(dest_host_state.short_description())
@@ -248,26 +259,27 @@ def sl_aggre(mod):
 
     # 如果那个聚合节点的不是自己
     if aggregate_host_uuid != hoststate.uuid:
-        print("not aggre node")
+        cprint("<====== not aggregating node ======>", "yellow")
         hoststate.aggreNode = False
         # model_file = open(file_name, "rb").read()
         model_file = open("{0}/STN-{1}.params".format(model_save_fold, "%04d" % global_epoch), "rb").read()
         encode_str = base64.b64encode(model_file)
-        send_rabbitmq_message(encode_str, ExchangeType.DIRECT, aggregate_host_uuid)
+        cprint("sending model...", "white", "on_grey")
+        rabbitmq.send_rabbitmq_message(encode_str, rabbitmq.ExchangeType.DIRECT, aggregate_host_uuid)    # 发送模型
 
-        # 判断是否收到了更新的模型，若收到了，则
+        cprint("receiving updated model...", "white", "on_grey")
+        # 判断是否收到了更新的模型，收到的话rabbitmq的接收会发送消息的
         while not hoststate.receive_update_model:
             time.sleep(1)
         # 收到了更新后的模型
-        print("loading updated model...")
+        cprint("loading updated model...", "yellow")
         # sym是网络，arg_params是权重参数，aux_params是辅助状态
         sym, arg_params, aux_params = mx.model.load_checkpoint("{0}/STN".format(model_save_fold), global_epoch)
         mod.set_params(arg_params, aux_params, allow_missing=True)
-        print("loading updated model finished")
-
+        cprint("<====== loading updated model finished ======>", "yellow")
         hoststate.receive_update_model = False
     else:
-        print("aggre node")
+        cprint("<====== aggregating node ======>", "yellow")
         hoststate.aggreNode = True
         # 等待收集完毕，然后聚合完毕，然后发送完毕
         upload_is_aggregating_status(True)
@@ -279,7 +291,7 @@ def sl_aggre(mod):
         count = 0
         current_training_host_uuids = get_all_training_host_uuids()
         current_training_hosts_num = len(current_training_host_uuids)
-        print("current_training_hosts_num: {}".format(current_training_hosts_num))
+        cprint("waiting for receiving other hosts' model...current_training_hosts_num: {}".format(current_training_hosts_num), "white", "on_grey")
         while hoststate.receive_all_model_files < current_training_hosts_num - 1:
             time.sleep(1)
             count += 1
@@ -288,10 +300,12 @@ def sl_aggre(mod):
                 count = 0
                 current_training_host_uuids = get_all_training_host_uuids()
                 current_training_hosts_num = len(current_training_host_uuids)
-                print("current_training_hosts_num: {}".format(current_training_hosts_num))
+                cprint("waiting for receivingx other hosts' model...current_training_hosts_num: {}".format(current_training_hosts_num), "white", "on_grey")
         hoststate.receive_all_model_files = 0
 
         #####################################模型融合########################################
+        cprint("received all models, aggregating {0} models now...".format(current_training_hosts_num), "white", "on_grey")
+
         if not os.path.exists('{}/STN-symbol.json'.format(save_aggre_model_fold_path)):
             mod.save_checkpoint('{}/STN'.format(save_aggre_model_fold_path),
                                 global_epoch)  # 自己的模型在aggre文件夹中也存储一遍，这样的话会有json文件
@@ -306,6 +320,7 @@ def sl_aggre(mod):
                 shutil.copyfile('{}/STN-symbol.json'.format(save_aggre_model_fold_path), json_path)  # 为了拿到json文件
             model_dirs.append("{0}/STN{1}".format(save_aggre_model_fold_path, i))
 
+        # 根据上面的目录集合，获得模型集合
         models_paras = []
         for model_prefix in model_dirs:
             # 里面第0个sym网络结构，第1个是参数，第2个辅助状态
@@ -315,20 +330,21 @@ def sl_aggre(mod):
 
         arg_params = {}
 
-        if model_size >= 2:  # 至少有两个模型，则需要融合
-            for param_name, param_value in mod.get_params()[0].items():
-                arg_params[param_name] = param_value / model_size
+        # 下面这段要放在外面，因为
+        for param_name, param_value in mod.get_params()[0].items():
+            arg_params[param_name] = param_value / model_size
 
-            # 对其他的每一个模型进行一个个的合并
-            for model_paras in models_paras:
-                print(len(model_paras))
-                for param_name, param_value in model_paras.items():
-                    arg_params[param_name] += param_value / model_size
+        # if model_size >= 2:  # 至少有两个模型，则需要融合
+        # 对其他的每一个模型进行一个个的合并，不再需要判断，因为若只有一个在训练，那么models_paras唯空
+        for model_paras in models_paras:
+            print(len(model_paras))
+            for param_name, param_value in model_paras.items():
+                arg_params[param_name] += param_value / model_size
 
         # 释放掉
         models_paras = []
 
-        print("models aggre successfully")
+        cprint("models aggre successfully", "yellow")
 
         # 加载网络的参数
         aux_params = {}
@@ -337,25 +353,27 @@ def sl_aggre(mod):
         # 下面这个名字随便取，因为不需要加载这个模型，自己：上面直接加载进参数，其他主机：收到模型后会更改模型名字
         # 不能随便取啊兄弟，预测的时候，需要用到这个模型，而且还需要json文件（这个自己加一下也行）
         mod.save_checkpoint("{0}/aggre".format(save_aggre_model_fold_path), global_epoch)
-        cprint('saved model to {0}/aggre-{1}.params'.format(save_aggre_model_fold_path, "%04d" % global_epoch))
+        cprint('saved model to {0}/aggre-{1}.params'.format(save_aggre_model_fold_path, "%04d" % global_epoch), "magenta")
         #####################################模型融合########################################
         # 更新后的模型参数分发给其他的主机
         model_file = open("{0}/aggre-{1}.params".format(save_aggre_model_fold_path, "%04d" % global_epoch),
                           "rb").read()
         encode_str = base64.b64encode(model_file)
 
+        cprint("sending updated model to {0} host...".format(current_training_hosts_num-1), "white",
+               "on_grey")
         for uuid in current_training_host_uuids:
             if uuid != hoststate.uuid:
-                send_rabbitmq_message(encode_str, ExchangeType.DIRECT, uuid)
+                rabbitmq.send_rabbitmq_message(encode_str, rabbitmq.ExchangeType.DIRECT, uuid)    # 发送模型
 
+        cprint("<====== distribute updated model to others successfully ======>", "yellow")
         upload_is_aggregating_status(False)
 
-    # 等待聚合节点分发更新后的参数模型，等待更新完之后，进行下一次的训练
-    cprint('waiting for next epoch {}...'.format(global_epoch + 1))
-    send_rabbitmq_message(json.dumps(
-        {'start': False, 'epoch': global_epoch, 'scheduler': False, 'uuid': str(hoststate.uuid),
-         "finished": False}),
-        ExchangeType.FANOUT)
+
+    # 等待聚合节点分发更新后的参数模型，等待更新完之后，进行下一次的训练，或者到达完成
+    cprint('aggregating task finished, waiting for others...', "white", "on_grey")
+    rabbitmq.send_epoch_message(global_epoch)
+
     while not hoststate.receive_next_epoch_train_signal:
         time.sleep(1)
     hoststate.receive_next_epoch_train_signal = False
@@ -363,11 +381,9 @@ def sl_aggre(mod):
 # 所有训练结束之后，需要告知训练结束s
 def sl_finish():
     # 训练结束
-    cprint('training is finished')
+    cprint('<====== training finished ======>', "green")
     upload_is_training_status(False)
-    send_rabbitmq_message(json.dumps(
-        {'start': False, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": True}),
-                          ExchangeType.FANOUT)
+    rabbitmq.send_finish_message()
 
 
 # training(epochs)

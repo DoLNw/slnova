@@ -48,8 +48,6 @@ new_table_sql = """create table if not exists test(
                 """
 
 
-
-
 def reconnect():
     global db
     global cursor
@@ -60,13 +58,12 @@ def reconnect():
     # 使用cursor()方法获取操作游标
     cursor = db.cursor()
 
-
 first_init = True
 if first_init:
     first_init = False
     reconnect()
 
-
+# 执行sql语句，下面所有的信息更新的sql语句执行，都要调用这句话
 def sql_excute(upload_sql, func_name):
     query_sql = "SELECT * FROM %s where uuid = '%s'" % (table, hoststate.uuid)
     # del_sql = "delete from %s where uuid = '%s'" % (table, hoststate.uuid)
@@ -154,7 +151,7 @@ def sql_excute(upload_sql, func_name):
     # # 关闭数据库连接
     # db.close()
 
-
+# 更新一些主机的基本信息
 def upload_basic_info():
     update_basic_info()  # 注意，一个是upload，一个是update
 
@@ -177,7 +174,7 @@ def upload_basic_info():
 
     sql_excute(update_sql, "upload_basic_info")
 
-
+# 更新安全风险信息
 def upload_nessus_info(high_vul=0, medium_vul=0, low_vul=0, info_vul=0):
     # 这些是需要更改的，有些参数不需要更改，我就不再更改了，比如当前IP，uuid等信息。
     hoststate.high_vul = high_vul
@@ -190,7 +187,7 @@ def upload_nessus_info(high_vul=0, medium_vul=0, low_vul=0, info_vul=0):
 
     sql_excute(upload_sql, "upload_nessus_info")
 
-
+# 更新是否在训练的信息
 def upload_is_training_status(is_training):
     hoststate.is_training = is_training
 
@@ -199,7 +196,7 @@ def upload_is_training_status(is_training):
 
     sql_excute(upload_sql, "upload_is_training_status")
 
-
+# 更新是否在聚合的信息
 def upload_is_aggregating_status(is_aggregating):
     hoststate.is_aggregating = is_aggregating
 
@@ -208,6 +205,7 @@ def upload_is_aggregating_status(is_aggregating):
 
     sql_excute(upload_sql, "upload_is_aggregating_status")
 
+# 更新有关机器学习方面的信息
 def upload_ml_info(loss=0.0, accuracy=0.0, epoch=-1, model_path=""):
     # 这些是需要更改的，有些参数不需要更改，我就不再更改了，比如当前IP，uuid等信息。
     hoststate.loss = loss
@@ -221,45 +219,13 @@ def upload_ml_info(loss=0.0, accuracy=0.0, epoch=-1, model_path=""):
     sql_excute(upload_sql, "update_ml_info")
 
 
-"""sched模块实现了一个时间调度程序，该程序可以通过单线程执行来处理按照时间尺度进行调度的时间。
-通过调用scheduler.enter(delay,priority,func,args)函数，可以将一个任务添加到任务队列里面，当指定的时间到了，就会执行任务(func函数)。
-
-delay：任务的间隔时间。
-priority：如果几个任务被调度到相同的时间执行，将按照priority的增序执行这几个任务。
-func：要执行的任务函数
-args：func的参数
-"""
+# 更新基本信息，需要用定时器每个每隔1s执行一次
 import time
-import sched
-import datetime
-
-# s = sched.scheduler(time.time, time.sleep)
-
-# def print_time(a='default'):
-#     print('Now Time:',datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),a)
-
-
-# # 每inc秒运行一次，优先级别为2
-# def task():
-#     s.enter(0, 2, upload_basic_info, argument=())
-#     s.run()
-#
-#
-# def perform(inc):
-#     s.enter(inc, 0, perform, (inc,))
-#     task()
-#
-#
-# def main(inc=3):
-#     s.enter(0, 0, perform, (inc,))
-#     s.run()
-
-# 上面那个，感觉递归进去太深入了。
 from apscheduler.schedulers.background import BackgroundScheduler
 def basic_info_upload_taskask():
     sched = BackgroundScheduler(timezone='MST')
     # 如果有多个任务序列的话可以给每个任务设置ID号，可以根据ID号选择清除对象，且remove放到start前才有效
-    sched.add_job(upload_basic_info, 'interval', seconds=1, id='upload_basic_info_id', max_instances=3)
+    sched.add_job(upload_basic_info, 'interval', seconds=1, id='upload_basic_info_id', max_instances=7)
     # sched.remove_job('upload_basic_info_id')
     sched.start()
 
@@ -270,7 +236,6 @@ def basic_info_upload_taskask():
     首先，预处理扫描，然后第一次扫描，这样的话得到了scanid和historyid，然后可以使用定时器，来定时检查是否完成，
     如果完成，更新数据并且进行下一次扫描；如果未完成，定时器件进行下一次扫描
 """
-
 scan_id = 0
 history_id = 0
 
@@ -312,7 +277,7 @@ def get_all_hosts_info():
         cursor.execute(query_sql)
         datas = cursor.fetchall()
         db.commit()
-        print("get_all_hosts_info successfully")
+        # print("get_all_hosts_info successfully")
     except:
         print("get_all_hosts_info error")
         # 输出异常信息

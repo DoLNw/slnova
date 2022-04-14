@@ -5,6 +5,8 @@ import json
 import threading
 import atexit
 
+from termcolor import cprint
+
 import sys
 sys.path.append("..")
 
@@ -58,7 +60,7 @@ class UploadBasicInfoThread(threading.Thread):
 
 
 if __name__ == "__main__":
-    print("{0} init successfully!".format(hoststate.uuid))
+    cprint("{0} init successfully!".format(hoststate.uuid), "green")
     fanout_rabbitmq_thread = RabbitmqThread(1, "fanout_rabbitmq_thread", ExchangeType.FANOUT, "")
     fanout_rabbitmq_thread.start()
 

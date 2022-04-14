@@ -27,6 +27,7 @@ https://www.cnblogs.com/shenh/p/10497244.html
 
 import time
 import pika
+import json
 from enum import Enum
 from pika.exceptions import ChannelClosed, ConnectionClosed
 
@@ -131,7 +132,7 @@ class RabbitMQServer(object):
 
 def message_execute(mode, body):
     if mode == ExchangeType.FANOUT:
-        print("received message: {}".format(body))
+        # print("received message: {}".format(body))
         if body == b'start train':
             hoststate.receive_start_train_signal = True
             return True
@@ -160,7 +161,8 @@ def message_execute(mode, body):
             decodeFile.write(base64.b64decode(body))
             decodeFile.close()
             hoststate.receive_all_model_files += 1
-            print("received {} model(s) successfully".format(hoststate.receive_all_model_files))
+            print("received {0} model(s) successfully, current received model: {1}".format(hoststate.receive_all_model_files, "{0}/{1}{2}-{3}.{4}".format(save_aggre_model_fold_path, prefix, hoststate.receive_all_model_files,
+                                            "%04d" % hoststate.epoch, suffix)))
 
 
         return True
@@ -206,18 +208,6 @@ class RabbitComsumer(RabbitMQServer):
                 self.reconnect(routing_key=routing_key)
                 time.sleep(2)
 
-
-# coding:utf-8
-# ! /bin/python
-import os
-import sys
-import os.path
-import pickle
-import struct
-
-
-
-
 import base64
 # 生产者
 class RabbitPublisher(RabbitMQServer):
@@ -250,6 +240,23 @@ def send_rabbitmq_message(message, exchange_type, routing_key=""):
     rabbit.start_publish(message, routing_key)
     rabbit.connection.close()
 
+def send_start_message():
+    pass
+
+def send_finish_message():
+    send_rabbitmq_message(json.dumps(
+        {'start': False, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": True}),
+        ExchangeType.FANOUT)
+
+def send_waiting_scheduler_message():
+    send_rabbitmq_message(json.dumps(
+        {'start': False, 'epoch': -1, 'scheduler': True, 'uuid': str(hoststate.uuid), "finished": False}),
+        ExchangeType.FANOUT)
+
+def send_epoch_message(global_epoch):
+    send_rabbitmq_message(json.dumps(
+        {'start': False, 'epoch': global_epoch, 'scheduler': False, 'uuid': str(hoststate.uuid),
+         "finished": False}), ExchangeType.FANOUT)
 
 if __name__ == "__main__":
     # rabbit = RabbitPublisher("direct")
