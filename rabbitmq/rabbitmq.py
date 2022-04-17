@@ -28,6 +28,8 @@ https://www.cnblogs.com/shenh/p/10497244.html
 import time
 import pika
 import json
+
+from termcolor import cprint
 from enum import Enum
 from pika.exceptions import ChannelClosed, ConnectionClosed
 
@@ -146,13 +148,18 @@ def message_execute(mode, body):
         # direct传输的数据，直接返回
 
         if not hoststate.aggreNode:
-            # 如果不是聚合节点，收到了更新的模型
+            # 如果不是聚合节点，收到了更新的模型，也跟下面的一样，存放在aggre目录中
+            # decodeFile = open(
+            #     "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix), "wb+")
             decodeFile = open(
-                "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix), "wb+")
+                "{0}/aggre-{1}.{2}".format(save_aggre_model_fold_path, "%04d" % hoststate.epoch, suffix), "wb+")
             decodeFile.write(base64.b64decode(body))
             decodeFile.close()
             hoststate.receive_update_model = True
-            print("saved updated model to {} successfully".format("{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix)))
+            # cprint("saved updated model to {} successfully".format(
+            #     "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix)))
+            cprint("saved updated model to {}".format("{0}/aggre-{1}.{2}".format(save_aggre_model_fold_path,
+                                                                     "%04d" % hoststate.epoch, suffix)), "magenta")
         else:
             # 参数文件名字从0开始，aggre路径/{prefix}{个数}-{epoch}.{params}，{prefix}{个数}当作prefix
             decodeFile = open(

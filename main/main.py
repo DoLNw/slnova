@@ -1,5 +1,12 @@
 # -*- coding:utf-8 -*-
 
+import sys
+sys.path.append("..")
+
+if len(sys.argv) < 2:
+    print('please spcify config_filename.')
+    sys.exit()
+
 import time
 import json
 import threading
@@ -7,14 +14,24 @@ import atexit
 
 from termcolor import cprint
 
-import sys
-sys.path.append("..")
+
 
 from scheduler.main.host_state import hoststate
 from db.mysql import nessus_upload_task, basic_info_upload_taskask, upload_is_training_status, upload_ml_info, upload_basic_info, upload_is_aggregating_status
 # from ml.run.magface_pyt import train
 from rabbitmq.rabbitmq import RabbitComsumer, send_rabbitmq_message, ExchangeType
 from STN_mxnet.STN_mxnet import training
+
+
+
+"""
+sys.argv[0]表示代码本身文件路径
+len(sys.argv) < 2 的话，就没有指定其它任何东西
+执行结果:  # python test.py --version help
+sys.argv[0] - -------- test.py
+sys.argv[1] - -------- --version
+sys.argv[2] - -------- help
+"""
 
 
 # atexit模块的主要作用是在程序即将结束之间执行的代码。比如使用ctrl+c
@@ -80,6 +97,11 @@ if __name__ == "__main__":
     upload_is_aggregating_status(False)
 
 
+
+    # 指定训练哪一个，具体sys.argv用法见最上面
+    con_filename = sys.argv[1]
+    cprint("config_filename: {0}".format(con_filename), "green")
+
     while True:
         # 若收到指令且当前没有训练任务的话，开始训练，并把指令设置成False
         if hoststate.receive_start_train_signal:
@@ -89,12 +111,13 @@ if __name__ == "__main__":
 
                 send_rabbitmq_message(json.dumps({'start': True, 'epoch': -1, 'scheduler': False, 'uuid': str(hoststate.uuid), "finished": False}), ExchangeType.FANOUT)
                 # train()
+                cprint('<============================== training  started ==============================>', "magenta")
                 upload_ml_info()
-                training()
+                training(con_filename)
                 # hoststate.is_training 设置成False是在train那个文件中
             else:
                 print("当前存在训练，无法开启新的训练")
-        time.sleep(10)
+        time.sleep(1)
 
 
 

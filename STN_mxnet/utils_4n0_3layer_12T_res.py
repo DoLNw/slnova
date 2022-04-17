@@ -31,6 +31,11 @@ def construct_model(config):
     #adj_mx = construct_adj(adj, 3)
     current_work_dir = os.path.abspath(os.path.dirname(__file__))  # 当前文件所在的目录
     adj_dtw = np.array(pd.read_csv(current_work_dir + "/" + config['adj_dtw_filename'], header=None))
+
+    # 为了处理170个节点自己改动的第三个地方
+    # dtw文件里面存储的是一个二位数据，有连接的地方就是1
+    adj_dtw = adj_dtw[: 170, : 170]
+
     #xxx
     adj_mx = construct_adj_fusion(adj, adj_dtw, 4)
     print("The shape of localized adjacency matrix: {}".format(
@@ -103,8 +108,14 @@ def get_adjacency_matrix(distance_df_filename, num_of_vertices,
                 if len(row) != 3:
                     continue
                 i, j, distance = int(row[0]), int(row[1]), float(row[2])
-                A[id_dict[i], id_dict[j]] = 1
-                A[id_dict[j], id_dict[i]] = 1
+
+                # 为了处理170个节点自己改动的第四个地方
+                # 为了adj_filename而服务，从这个面得到节点ID，然后用到adj_filename这个一行三列中去，具体见下面
+                # 此处用一个idfilename是因为数据里面的节点是随便排的，会有很大的
+                # 所以需要有索引去索引这些个节点ID，那我还是只需要判断i和j是否小于170就好了
+                if i < num_of_vertices and j < num_of_vertices:
+                    A[id_dict[i], id_dict[j]] = 1
+                    A[id_dict[j], id_dict[i]] = 1
         return A
 
     # Fills cells in the matrix with distances.
@@ -115,15 +126,19 @@ def get_adjacency_matrix(distance_df_filename, num_of_vertices,
             if len(row) != 3:
                 continue
             i, j, distance = int(row[0]), int(row[1]), float(row[2])
-            if type_ == 'connectivity':
-                A[i, j] = 1
-                A[j, i] = 1
-            elif type == 'distance':
-                A[i, j] = 1 / distance
-                A[j, i] = 1 / distance
-            else:
-                raise ValueError("type_ error, must be "
-                                 "connectivity or distance!")
+
+            # 为了处理170个节点自己改动的第二个地方
+            # 此处一行三列，两点间的distance
+            if i < num_of_vertices and j < num_of_vertices:
+                if type_ == 'connectivity':
+                    A[i, j] = 1
+                    A[j, i] = 1
+                elif type == 'distance':
+                    A[i, j] = 1 / distance
+                    A[j, i] = 1 / distance
+                else:
+                    raise ValueError("type_ error, must be "
+                                     "connectivity or distance!")
     return A
 
 

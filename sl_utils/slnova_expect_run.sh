@@ -12,11 +12,15 @@ set timeout -1
 set user "root"
 set host "192.160.149.100"
 
-
+# 得到登录密码，用户名和远程IP
 set loginpass [lindex $argv 2]
 set port [lindex $argv 0]
 set user [lindex $argv 1]
+if {$argc >= 4} {
+	set config_filename [lindex $argv 3]
+}
 
+# 执行ssh
 spawn ssh -p ${port} ${user}
 
 # -re 匹配正则表达式
@@ -31,30 +35,6 @@ expect {
 		exit
 	}
 }
-
-expect "*#"
-send "if \[ -f '/root/autodl-nas/slnova.zip' \]; then\r rm /root/autodl-nas/slnova.zip\r fi\r"
-expect "*#"
-send "if \[ -d '/root/autodl-nas/slnova' \]; then\r rm -rf /root/autodl-nas/slnova\r fi\r"
-
-expect "*#"
-spawn scp -rP ${port} /Users/jc/jcall/研究实验代码/slnova.zip ${user}:/root/autodl-nas
-expect {
-	"*password" {
-		set timeout 300; send "${loginpass}\r"; exp_continue;    # 设置传输完成或者300s之后才能进行下一步
-	}
-	"yes/no" {
-		send "yes\r";
-	}
-}
-
-
-
-# 执行scp后，不再远程了已经，所以需要重新远程进去
-# expect "*%"   # 这里需要判断是不是mac终端的新的一行
-spawn ssh -p ${port} ${user}
-expect "*password:"
-send "${loginpass}\r"
 
 expect "*#"                    # 定义命令的开始，就是匹配到了root@container-836911b1ac-c9909245:~#，最后不是有一个#嘛，前面的*表示任何
 send "cd autodl-nas\r"
@@ -75,11 +55,15 @@ expect "*#"
 send "cd main\r"
 
 expect "*#"
-send "python main.py\r"
+
+
+if {$argc >= 4} {
+	send "python main.py ${config_filename}\r"
+} else {
+	send "python main.py\r"
+}
 
 
 
-
-
-# 这个命令表示停留在上面的执行完之后，停留在该界面，可以让用户进行交互
+# # 这个命令表示停留在上面的执行完之后，停留在该界面，可以让用户进行交互
 interact  #用exact这个指令是为了把控制权交给用户，代替send "logout\r"    终端不会断开)

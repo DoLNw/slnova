@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+# -*- coding:utf-8 -*-s
 
 import time
 import json
@@ -41,21 +41,43 @@ class Args(object):
         self.save = True
 args = Args()
 
-
 model_save_fold = CONF.STN.model_save_fold + "/" + hoststate.uuid   # 每一个主机训练好的模型存放的目录
 save_aggre_model_fold_path = CONF.STN.save_aggre_model_fold_path    # 每一个主机存放的聚合的模型的目录
 current_work_dir = os.path.abspath(os.path.dirname(__file__))       # 当前文件所在的目录
-config_filename = current_work_dir + "/" + args.config              # 当前ml的配置文件的目录
+# config_filename = current_work_dir + "/" + args.config              # 当前ml的配置文件的目录
+config_filename_dir = current_work_dir
 
 global_epoch = 1
 
-def training():
+# 这个最后的一次评估，不是使用的最后的聚合模型，而是使用的聚合模型之后在训练一些轮数之后自己的模型
+def eval(mod, test_loader, test_y, config):
+    t = time.time()
+    test_loader.reset()
+    prediction = mod.predict(test_loader)[1].asnumpy()
+
+    tmp_info = []
+    for idx in range(config['num_for_predict']):
+        y, x = test_y[:, : idx + 1, :], prediction[:, : idx + 1, :]
+        tmp_info.append((
+            masked_mae_np(y, x, 0),
+            masked_mape_np(y, x, 0),
+            masked_mse_np(y, x, 0) ** 0.5
+        ))
+    mae, mape, rmse = tmp_info[-1]
+
+    # global_epoch-1，否则的话，global_epoch指示的是下一轮
+    cprint('test: Epoch: {}, MAE: {:.2f}, MAPE: {:.2f}, RMSE: {:.2f}, '
+          'time: {:.2f}s'.format(global_epoch-1, mae, mape, rmse, time.time() - t), "cyan", flush=True)
+    return mae, mape, rmse, time.time() - t
+
+def training(con_filename):
+    config_filename = config_filename_dir + "/" + con_filename
+
     if not os.path.exists(model_save_fold):
         # os.mkdir(model_save_fold)
         os.system("mkdir -p {0}".format(model_save_fold)) # 此处需要-p，允许创建目录及子目录
     if not os.path.exists(save_aggre_model_fold_path):
         os.mkdir(save_aggre_model_fold_path)
-
 
     with open(config_filename, 'r') as f:
         config = json.loads(f.read())
@@ -79,6 +101,13 @@ def training():
         if args.test:
             x = x[: 100]
             y = y[: 100]
+
+        # 为了处理170个节点自己改动的第一个地方
+        # 此处是要训练的数据，需要取出第三维的前170个节点的数据
+        if len(x[0][0]) != 170:  # 如果节点个数不是170个，取出前170个的呗
+            x = x[:, :, : 170]
+            y = y[:, :, : 170]
+
         y = y.squeeze(axis=-1)
         # print(x.shape, y.shape)
         loaders.append(
@@ -147,9 +176,6 @@ def training():
 
 
 
-
-
-
     global global_epoch
     lowest_val_loss = 1e6
     for _ in range(epochs):
@@ -208,7 +234,7 @@ def training():
         global_epoch += 1
 
     # 结束的时候需要添加sl_finish方法
-    sl_finish()
+    sl_finish(mod, test_loader, test_y, config)
 
 
 
@@ -272,9 +298,10 @@ def sl_aggre(mod):
         while not hoststate.receive_update_model:
             time.sleep(1)
         # 收到了更新后的模型
-        cprint("loading updated model...", "yellow")
+
+        cprint("loading updated model...", "white", "on_grey")
         # sym是网络，arg_params是权重参数，aux_params是辅助状态
-        sym, arg_params, aux_params = mx.model.load_checkpoint("{0}/STN".format(model_save_fold), global_epoch)
+        sym, arg_params, aux_params = mx.model.load_checkpoint("{0}/aggre".format(save_aggre_model_fold_path), global_epoch)
         mod.set_params(arg_params, aux_params, allow_missing=True)
         cprint("<====== loading updated model finished ======>", "yellow")
         hoststate.receive_update_model = False
@@ -337,7 +364,7 @@ def sl_aggre(mod):
         # if model_size >= 2:  # 至少有两个模型，则需要融合
         # 对其他的每一个模型进行一个个的合并，不再需要判断，因为若只有一个在训练，那么models_paras唯空
         for model_paras in models_paras:
-            print(len(model_paras))
+            # print(len(model_paras))
             for param_name, param_value in model_paras.items():
                 arg_params[param_name] += param_value / model_size
 
@@ -360,7 +387,7 @@ def sl_aggre(mod):
                           "rb").read()
         encode_str = base64.b64encode(model_file)
 
-        cprint("sending updated model to {0} host...".format(current_training_hosts_num-1), "white",
+        cprint("distributing updated model to {0} host...".format(current_training_hosts_num-1), "white",
                "on_grey")
         for uuid in current_training_host_uuids:
             if uuid != hoststate.uuid:
@@ -379,9 +406,15 @@ def sl_aggre(mod):
     hoststate.receive_next_epoch_train_signal = False
 
 # 所有训练结束之后，需要告知训练结束s
-def sl_finish():
+def sl_finish(mod, test_loader, test_y, config):
     # 训练结束
-    cprint('<====== training finished ======>', "green")
+    cprint('<============================== training finished ==============================>', "magenta")
+    cprint('<============================== testing   started ==============================>', "magenta")
+    eval(mod, test_loader, test_y, config)
+    cprint('<============================== testing  finished ==============================>', "magenta")
+
+    global global_epoch
+    global_epoch = 1
     upload_is_training_status(False)
     rabbitmq.send_finish_message()
 
