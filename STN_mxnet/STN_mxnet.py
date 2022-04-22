@@ -8,6 +8,9 @@ import mxnet as mx
 import base64
 import os
 
+import re
+import xlwt
+
 import shutil
 from termcolor import cprint
 
@@ -21,6 +24,7 @@ from scheduler.main.host_state import hoststate
 
 import conf
 CONF = conf.CONF
+
 
 # parser = argparse.ArgumentParser()
 # parser.add_argument("--config", type=str, help='configuration file')
@@ -36,9 +40,13 @@ class Args(object):
         super(Args, self).__init__()
 
         self.config = CONF.STN.config_path
+        # self.test = False
         self.test = True
         self.plot = False
         self.save = True
+        self.weight_avg = True
+
+
 args = Args()
 
 model_save_fold = CONF.STN.model_save_fold + "/" + hoststate.uuid   # 每一个主机训练好的模型存放的目录
@@ -47,10 +55,17 @@ current_work_dir = os.path.abspath(os.path.dirname(__file__))       # 当前文�
 # config_filename = current_work_dir + "/" + args.config              # 当前ml的配置文件的目录
 config_filename_dir = current_work_dir
 
+# 创建一个workbook设置编码
+workbook = xlwt.Workbook(encoding='utf-8')
+# 创建一个worksheet
+worksheet = workbook.add_sheet('sheet')
+
+
+# 若设置成不是1，那么就会断点续传了
 global_epoch = 1
 
 # 这个最后的一次评估，不是使用的最后的聚合模型，而是使用的聚合模型之后在训练一些轮数之后自己的模型
-def eval(mod, test_loader, test_y, config):
+def eval(mod, test_loader, test_y, config, after_aggretion=False, save = True):
     t = time.time()
     test_loader.reset()
     prediction = mod.predict(test_loader)[1].asnumpy()
@@ -65,19 +80,38 @@ def eval(mod, test_loader, test_y, config):
         ))
     mae, mape, rmse = tmp_info[-1]
 
-    # global_epoch-1，否则的话，global_epoch指示的是下一轮
-    cprint('test: Epoch: {}, MAE: {:.2f}, MAPE: {:.2f}, RMSE: {:.2f}, '
-          'time: {:.2f}s'.format(global_epoch-1, mae, mape, rmse, time.time() - t), "cyan", flush=True)
+    cprint('test: Epoch: {}, RMSE: {:.2f}, MAE: {:.2f}, MAPE: {:.2f}, '
+           'time: {:.2f}s'.format(global_epoch, rmse, mae, mape, time.time() - t), "cyan", flush=True)
+    if save:
+        # global_epoch-1，否则的话，global_epoch指示的是下一轮
+        if not after_aggretion:
+            worksheet.write(global_epoch + 1, 8, global_epoch)
+            worksheet.write(global_epoch + 1, 9, rmse)
+            worksheet.write(global_epoch + 1, 10, mae)
+            worksheet.write(global_epoch + 1, 11, mape)
+            worksheet.write(global_epoch + 1, 12, time.time() - t)
+        else:
+            worksheet.write(global_epoch + 1, 14, global_epoch)
+            worksheet.write(global_epoch + 1, 15, rmse)
+            worksheet.write(global_epoch + 1, 16, mae)
+            worksheet.write(global_epoch + 1, 17, mape)
+            worksheet.write(global_epoch + 1, 18, time.time() - t)
+
     return mae, mape, rmse, time.time() - t
 
 def training(con_filename):
     config_filename = config_filename_dir + "/" + con_filename
+
+    worksheet.write(2, 20, hoststate.uuid)
+    worksheet.write(3, 20, con_filename)
 
     if not os.path.exists(model_save_fold):
         # os.mkdir(model_save_fold)
         os.system("mkdir -p {0}".format(model_save_fold)) # 此处需要-p，允许创建目录及子目录
     if not os.path.exists(save_aggre_model_fold_path):
         os.mkdir(save_aggre_model_fold_path)
+    if os.path.exists(CONF.STN.model_save_fold + "/" + hoststate.uuid + '/' + hoststate.uuid + '.xlsx'): # 删除excel数据文件，防止出现重写错误
+        os.remove(CONF.STN.model_save_fold + "/" + hoststate.uuid + '/' + hoststate.uuid + '.xlsx')
 
     with open(config_filename, 'r') as f:
         config = json.loads(f.read())
@@ -178,6 +212,24 @@ def training(con_filename):
 
     global global_epoch
     lowest_val_loss = 1e6
+
+
+    # 在训练之前，需要考虑一下断点续传的问题，因为有时候可能由于传输等一些的原因，训练会出错
+    # 如果传进来的global_epoch不是1，那就证明我不是从头开始训练，我需要从这里开始训练
+    # 但是我现在是每隔20轮存储一次，所以训练的节点只能每20加一次。
+    # 把global_epoch当作全局变量，然后传入20就代表将前面的20的聚合模型导入，然后从第21轮开始训练
+    # global_epoch = 80
+
+    if global_epoch != 1 and global_epoch % 20 == 0:
+        cprint("restore training from epoch: {0}".format(global_epoch), "green")
+        # sym是网络，arg_params是权重参数，aux_params是辅助状态
+        sym, arg_params, aux_params = mx.model.load_checkpoint("{0}/aggre".format(save_aggre_model_fold_path),
+                                                               global_epoch)
+        mod.set_params(arg_params, aux_params, allow_missing=True)
+        global_epoch += 1
+    else:
+        cprint("start new training...".format(global_epoch), "green")
+
     for _ in range(epochs):
         t = time.time()
         info = [global_epoch]
@@ -192,6 +244,10 @@ def training(con_filename):
         cprint('training: Epoch: %s, RMSE: %.2f, MAE: %.2f, time: %.2f s' % (
             global_epoch, metric_values['rmse'], metric_values['mae'],
             time.time() - t), "cyan", flush=True)
+        worksheet.write(global_epoch + 1, 0, global_epoch)
+        worksheet.write(global_epoch + 1, 1, metric_values['rmse'])
+        worksheet.write(global_epoch + 1, 2, metric_values['mae'])
+        worksheet.write(global_epoch + 1, 3, time.time() - t)
         info.append(metric_values['mae'])
 
         val_loader.reset()
@@ -199,15 +255,19 @@ def training(con_filename):
         loss = masked_mae_np(val_y, prediction, 0)
         cprint('validation: Epoch: %s, loss: %.2f, time: %.2f s' % (
             global_epoch, loss, time.time() - t), "cyan", flush=True)
+        worksheet.write(global_epoch + 1, 5, loss)
+        worksheet.write(global_epoch + 1, 6, time.time() - t)
         info.append(loss)
-
 
         # 每一次的训练完成之后，需要添加sl_epoch_end
         sl_epoch_end(loss)
 
         if global_epoch % 20 == 0:
-            sl_aggre(mod)
+            # 此处，在每20轮，融合的前后分别进行一次参数融合
 
+            sl_aggre(mod, test_loader, test_y, config)
+
+        workbook.save(CONF.STN.model_save_fold + "/" + hoststate.uuid + '/' + hoststate.uuid + '.xlsx')
 
         # if loss < lowest_val_loss:
         #
@@ -257,7 +317,7 @@ def sl_epoch_end(loss):
                    "{0}/STN-{1}.params".format(model_save_fold, "%04d" % (global_epoch // 20 * 20)))
 
 # 若到达一定训练轮数之后，进行参数聚合
-def sl_aggre(mod):
+def sl_aggre(mod, test_loader, test_y, config):
     mod.save_checkpoint('{}/STN'.format(model_save_fold), global_epoch)
     cprint('saved model to {0}/STN-{1}.params'.format(model_save_fold, "%04d" % global_epoch), "magenta") # 一定轮数后存储模型，然后聚合
 
@@ -285,6 +345,10 @@ def sl_aggre(mod):
 
     # 如果那个聚合节点的不是自己
     if aggregate_host_uuid != hoststate.uuid:
+        # 以下是自己这个模型，自己的模型得先评估一下
+        cprint('test before aggretation', "cyan", flush=True)
+        eval(mod, test_loader, test_y, config, after_aggretion=False, save=True)
+
         cprint("<====== not aggregating node ======>", "yellow")
         hoststate.aggreNode = False
         # model_file = open(file_name, "rb").read()
@@ -340,35 +404,91 @@ def sl_aggre(mod):
             shutil.copyfile('{}/STN-symbol.json'.format(save_aggre_model_fold_path),
                             '{}/aggre-symbol.json'.format(save_aggre_model_fold_path))  # 为了拿到json文件
 
-        model_dirs = []  # 这里面的目录，不用存储后缀
+        model_dirs = ['{}/STN'.format(model_save_fold)]  # 这里面的目录，不用存储后缀，第一个表示自己的模型
         for i in range(current_training_hosts_num - 1):
             json_path = "{0}/STN{1}-symbol.json".format(save_aggre_model_fold_path, i)
             if not os.path.exists(json_path):
                 shutil.copyfile('{}/STN-symbol.json'.format(save_aggre_model_fold_path), json_path)  # 为了拿到json文件
             model_dirs.append("{0}/STN{1}".format(save_aggre_model_fold_path, i))
 
+
+
+        #####################################取出模型，计算加权平均的权重########################################
+        maes = []
+        mae_all = 0
+        rmses = []
+        rmse_all = 0
+        mapes = []
+        mape_all = 0
+
+        weights = []
+
+        # 测试评估所有模型在本地数据集
+        # 第一个是自己的模型，应该效果会最好
+        cprint('test before aggregation', "cyan", flush=True)
+        # 以下是其他的几个模型在本地数据集的评估
         # 根据上面的目录集合，获得模型集合
         models_paras = []
-        for model_prefix in model_dirs:
+
+        for i, model_prefix in enumerate(model_dirs):
             # 里面第0个sym网络结构，第1个是参数，第2个辅助状态
-            models_paras.append(mx.model.load_checkpoint(model_prefix, global_epoch)[1])
+            model_param = mx.model.load_checkpoint(model_prefix, global_epoch)
+            arg_param = model_param[1]
+            aux_param = model_param[2]
+            models_paras.append(arg_param)
 
-        model_size = len(models_paras) + 1  # 算上自己
+            # 自己的模型需要先评估一下，是需要存储的
+            if i == 0:
+                mae, mape, rmse, mytime = eval(mod, test_loader, test_y, config, after_aggretion=False, save=True)
 
+            if args.weight_avg:
+                # 把每一个模型，放到我本地的数据集进行评估，得到这几个参数
+                # 由于是越小越小，所以需要取倒数
+                if i != 0:
+                    mod.set_params(arg_param, aux_param, allow_missing=True)
+                    mae, mape, rmse, mytime = eval(mod, test_loader, test_y, config, after_aggretion=False, save=False)
+
+                mae = round(1 / mae, 5)
+                maes.append(mae)
+                mae_all += mae
+
+                rmse = round(1 / rmse, 5)
+                rmses.append(rmse)
+                rmse_all += rmse
+
+                mape = round(1 / mape, 5)
+                mapes.append(mape)
+                mape_all += mape
+
+        model_size = len(models_paras)
+
+        if args.weight_avg:
+            for i in range(model_size):
+                maes[i] = round(maes[i] / mae_all, 5)
+                rmses[i] = round(rmses[i] / rmse_all, 5)
+                mapes[i] = round(mapes[i] / mape_all, 5)
+
+                weights.append((maes[i] + rmses[i] + mapes[i]) / 3)  # 注意，这里三个指标，所以除以3
+        else:
+            for i in range(model_size):
+                weights.append(1 / model_size)
+
+        #####################################取出模型，计算加权平均的权重########################################
         arg_params = {}
-
-        # 下面这段要放在外面，因为
-        for param_name, param_value in mod.get_params()[0].items():
-            arg_params[param_name] = param_value / model_size
 
         # if model_size >= 2:  # 至少有两个模型，则需要融合
         # 对其他的每一个模型进行一个个的合并，不再需要判断，因为若只有一个在训练，那么models_paras唯空
-        for model_paras in models_paras:
-            # print(len(model_paras))
-            for param_name, param_value in model_paras.items():
-                arg_params[param_name] += param_value / model_size
 
-        # 释放掉
+        for i, model_paras in enumerate(models_paras):
+            # print(len(model_paras))
+            cprint(weights[i], "red")
+            for param_name, param_value in model_paras.items():
+                if i == 0:
+                    arg_params[param_name] = param_value * weights[i]
+                else:
+                    arg_params[param_name] += param_value * weights[i]
+
+        # 释放掉?
         models_paras = []
 
         cprint("models aggre successfully", "yellow")
@@ -382,6 +502,8 @@ def sl_aggre(mod):
         mod.save_checkpoint("{0}/aggre".format(save_aggre_model_fold_path), global_epoch)
         cprint('saved model to {0}/aggre-{1}.params'.format(save_aggre_model_fold_path, "%04d" % global_epoch), "magenta")
         #####################################模型融合########################################
+
+
         # 更新后的模型参数分发给其他的主机
         model_file = open("{0}/aggre-{1}.params".format(save_aggre_model_fold_path, "%04d" % global_epoch),
                           "rb").read()
@@ -405,12 +527,15 @@ def sl_aggre(mod):
         time.sleep(1)
     hoststate.receive_next_epoch_train_signal = False
 
+    cprint('test after aggregation', "cyan", flush=True)
+    eval(mod, test_loader, test_y, config, True)
+
 # 所有训练结束之后，需要告知训练结束s
 def sl_finish(mod, test_loader, test_y, config):
     # 训练结束
     cprint('<============================== training finished ==============================>', "magenta")
     cprint('<============================== testing   started ==============================>', "magenta")
-    eval(mod, test_loader, test_y, config)
+    eval(mod, test_loader, test_y, config, save=False)
     cprint('<============================== testing  finished ==============================>', "magenta")
 
     global global_epoch

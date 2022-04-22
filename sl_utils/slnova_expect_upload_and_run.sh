@@ -25,7 +25,7 @@ spawn ssh -p ${port} ${user}
 
 # -re 匹配正则表达式
 expect {
-	-re "Are you sure you want lo continue connecting (yes/no)?" {
+	-re "Are you sure you want to continue connecting (yes/no/\[fingerprint\])?" {
 		send "yes\r"
 	}
 	-re "password:" {
@@ -75,10 +75,7 @@ expect "*#"
 send "if \[ -d '/root/autodl-nas/__MACOSX' \]; then\r rm -rf '/root/autodl-nas/__MACOSX'\r fi\r"
 
 expect "*#"
-send "cd slnova\r"
-
-expect "*#"
-send "cd main\r"
+send "cd slnova/main\r"
 
 expect "*#"
 
