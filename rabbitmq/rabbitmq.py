@@ -43,8 +43,8 @@ from scheduler.main.host_state import hoststate
 save_aggre_model_fold_path = CONF.rabbitmq.save_aggre_model_fold_path
 model_save_fold = CONF.rabbitmq.model_save_fold
 model_save_fold += "/" + hoststate.uuid
-suffix = CONF.rabbitmq.suffix
-prefix = CONF.rabbitmq.prefix
+# suffix = CONF.rabbitmq.suffix
+# prefix = CONF.rabbitmq.prefix
 
 class ExchangeType(Enum):
     FANOUT = "fanout"
@@ -132,6 +132,7 @@ class RabbitMQServer(object):
         except Exception as e:
             print(e)
 
+
 def message_execute(mode, body):
     if mode == ExchangeType.FANOUT:
         # print("received message: {}".format(body))
@@ -147,30 +148,49 @@ def message_execute(mode, body):
     else:
         # direct传输的数据，直接返回
 
+        # if not hoststate.aggreNode:
+        #     # 如果不是聚合节点，收到了更新的模型，也跟下面的一样，存放在aggre目录中
+        #     # decodeFile = open(
+        #     #     "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix), "wb+")
+        #     decodeFile = open(
+        #         "{0}/aggre-{1}.{2}".format(save_aggre_model_fold_path, "%04d" % hoststate.epoch, suffix), "wb+")
+        #     decodeFile.write(base64.b64decode(body))
+        #     decodeFile.close()
+        #     hoststate.receive_update_model = True
+        #     # cprint("saved updated model to {} successfully".format(
+        #     #     "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix)))
+        #     cprint("saved updated model to {}".format("{0}/aggre-{1}.{2}".format(save_aggre_model_fold_path,
+        #                                                              "%04d" % hoststate.epoch, suffix)), "magenta")
+        # else:
+        #     # 参数文件名字从0开始，aggre路径/{prefix}{个数}-{epoch}.{params}，{prefix}{个数}当作prefix
+        #     decodeFile = open(
+        #         "{0}/{1}{2}-{3}.{4}".format(save_aggre_model_fold_path, prefix, hoststate.receive_all_model_files,
+        #                                     "%04d" % hoststate.epoch, suffix), "wb+")
+        #     decodeFile.write(base64.b64decode(body))
+        #     decodeFile.close()
+        #     hoststate.receive_all_model_files += 1
+        #     print("received {0} model(s) successfully, current received model: {1}".format(hoststate.receive_all_model_files, "{0}/{1}{2}-{3}.{4}".format(save_aggre_model_fold_path, prefix, hoststate.receive_all_model_files,
+        #                                     "%04d" % hoststate.epoch, suffix)))
+
         if not hoststate.aggreNode:
             # 如果不是聚合节点，收到了更新的模型，也跟下面的一样，存放在aggre目录中
-            # decodeFile = open(
-            #     "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix), "wb+")
             decodeFile = open(
-                "{0}/aggre-{1}.{2}".format(save_aggre_model_fold_path, "%04d" % hoststate.epoch, suffix), "wb+")
+                "{0}/MNISTaggre-{1}.pth".format(save_aggre_model_fold_path, hoststate.epoch), "wb+")
             decodeFile.write(base64.b64decode(body))
             decodeFile.close()
             hoststate.receive_update_model = True
-            # cprint("saved updated model to {} successfully".format(
-            #     "{0}/{1}-{2}.{3}".format(model_save_fold, prefix, "%04d" % hoststate.epoch, suffix)))
-            cprint("saved updated model to {}".format("{0}/aggre-{1}.{2}".format(save_aggre_model_fold_path,
-                                                                     "%04d" % hoststate.epoch, suffix)), "magenta")
+            cprint("saved updated model to {0}/MNISTaggre-{1}.pth".format(save_aggre_model_fold_path, hoststate.epoch), "magenta")
         else:
-            # 参数文件名字从0开始，aggre路径/{prefix}{个数}-{epoch}.{params}，{prefix}{个数}当作prefix
+            # 参数文件名字从0开始，aggre路径/MNIST{主机号}-{epoch}.pth
             decodeFile = open(
-                "{0}/{1}{2}-{3}.{4}".format(save_aggre_model_fold_path, prefix, hoststate.receive_all_model_files,
-                                            "%04d" % hoststate.epoch, suffix), "wb+")
+                "{0}/MNIST{1}-{2}.pth".format(save_aggre_model_fold_path, hoststate.receive_all_model_files,
+                                            hoststate.epoch), "wb+")
             decodeFile.write(base64.b64decode(body))
             decodeFile.close()
             hoststate.receive_all_model_files += 1
-            print("received {0} model(s) successfully, current received model: {1}".format(hoststate.receive_all_model_files, "{0}/{1}{2}-{3}.{4}".format(save_aggre_model_fold_path, prefix, hoststate.receive_all_model_files,
-                                            "%04d" % hoststate.epoch, suffix)))
-
+            print("received {0} model(s) successfully, current received model: {1}"
+                  .format(hoststate.receive_all_model_files, "{0}/MNIST{1}-{2}.pth"
+                          .format(save_aggre_model_fold_path, hoststate.receive_all_model_files, hoststate.epoch)))
 
         return True
 

@@ -20,7 +20,8 @@ from scheduler.main.host_state import hoststate
 from db.mysql import nessus_upload_task, basic_info_upload_taskask, upload_is_training_status, upload_ml_info, upload_basic_info, upload_is_aggregating_status
 # from ml.run.magface_pyt import train
 from rabbitmq.rabbitmq import RabbitComsumer, send_rabbitmq_message, ExchangeType
-from STN_mxnet.STN_mxnet import training
+# from STN_mxnet.STN_mxnet import training
+from mnist.mnist_train import start_train
 
 
 
@@ -99,8 +100,9 @@ if __name__ == "__main__":
 
 
     # 指定训练哪一个，具体sys.argv用法见最上面
-    con_filename = sys.argv[1]
-    cprint("config_filename: {0}".format(con_filename), "green")
+    if len(sys.argv) > 1:
+        con_filename = sys.argv[1]
+        cprint("config_filename: {0}".format(con_filename), "green")
 
     while True:
         # 若收到指令且当前没有训练任务的话，开始训练，并把指令设置成False
@@ -113,7 +115,8 @@ if __name__ == "__main__":
                 # train()
                 cprint('<============================== training  started ==============================>', "magenta")
                 upload_ml_info()
-                training(con_filename)
+                # training(con_filename)
+                start_train()
                 # hoststate.is_training 设置成False是在train那个文件中
             else:
                 print("当前存在训练，无法开启新的训练")

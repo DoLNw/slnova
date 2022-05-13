@@ -60,7 +60,6 @@ workbook = xlwt.Workbook(encoding='utf-8')
 # 创建一个worksheet
 worksheet = workbook.add_sheet('sheet')
 
-
 # 若设置成不是1，那么就会断点续传了
 global_epoch = 1
 
@@ -99,11 +98,9 @@ def eval(mod, test_loader, test_y, config, after_aggretion=False, save = True):
 
     return mae, mape, rmse, time.time() - t
 
+
 def training(con_filename):
     config_filename = config_filename_dir + "/" + con_filename
-
-    worksheet.write(2, 20, hoststate.uuid)
-    worksheet.write(3, 20, con_filename)
 
     if not os.path.exists(model_save_fold):
         # os.mkdir(model_save_fold)
@@ -112,6 +109,17 @@ def training(con_filename):
         os.mkdir(save_aggre_model_fold_path)
     if os.path.exists(CONF.STN.model_save_fold + "/" + hoststate.uuid + '/' + hoststate.uuid + '.xlsx'): # 删除excel数据文件，防止出现重写错误
         os.remove(CONF.STN.model_save_fold + "/" + hoststate.uuid + '/' + hoststate.uuid + '.xlsx')
+
+    global workbook
+    global worksheet
+
+    # 创建一个workbook设置编码
+    workbook = xlwt.Workbook(encoding='utf-8')
+    # 创建一个worksheet
+    worksheet = workbook.add_sheet('sheet')
+
+    worksheet.write(2, 20, hoststate.uuid)
+    worksheet.write(3, 20, con_filename)
 
     with open(config_filename, 'r') as f:
         config = json.loads(f.read())
@@ -409,7 +417,7 @@ def sl_aggre(mod, test_loader, test_y, config):
             json_path = "{0}/STN{1}-symbol.json".format(save_aggre_model_fold_path, i)
             if not os.path.exists(json_path):
                 shutil.copyfile('{}/STN-symbol.json'.format(save_aggre_model_fold_path), json_path)  # 为了拿到json文件
-            model_dirs.append("{0}/STN{1}".format(save_aggre_model_fold_path, i))
+            model_dirs.append("{0}/STN{1}".format(save_aggre_model_fold_path, i))   # 此处的i代表哪一个主机
 
 
 

@@ -16,8 +16,8 @@ for ((i=0;i<${host_num};i+=1))
 	do
 	   case ${i} in
 	    0)
-		ssh_cmd="ssh -p 25317 root@region-11.autodl.com "
-		password="H1OvGQzpqe"
+		ssh_cmd="ssh -p 28425 root@region-11.autodl.com "
+		password="AY7D0Fft+O"
 		config_filename="config/PEMS08/individual_3layer_12T.json"
 
 		port=`echo $ssh_cmd | awk '{print $3}'`
@@ -43,7 +43,7 @@ for ((i=0;i<${host_num};i+=1))
 			activate
 			end tell
 EOF
-		
+		# do script "expect /Users/jc/jcall/研究实验代码/slnova/sl_utils/slnova_expect_upload_and_run.sh ${port} ${user} ${password} ${config_filename}"
 		# expect /Users/jc/jcall/研究实验代码/slnova/sl_utils/slnova_expect_upload_and_run.sh ${port} ${user} ${password} ${config_filename}
 	    ;;
 
@@ -51,8 +51,8 @@ EOF
 		read -p "请等待前一个主机配置完成后输入回车："
 		echo "host number 2"
 
-		ssh_cmd="ssh -p 16893 root@region-11.autodl.com "
-		password="V0vJwfMtZM"
+		ssh_cmd="ssh -p 52871 root@region-4.autodl.com "
+		password="ZFqBff95J9"
 		config_filename="config/PEMS07/individual_3layer_12T.json"
 
 		port=`echo $ssh_cmd | awk '{print $3}'`
@@ -62,7 +62,7 @@ EOF
 		osascript <<EOF
 		tell application "Terminal"
 			display notification "主机No.${i}开始启动" with title ""
-			do script "expect /Users/jc/jcall/研究实验代码/slnova/sl_utils/slnova_expect_run.sh ${port} ${user} ${password} ${config_filename}"
+			do script "expect /Users/jc/jcall/研究实验代码/slnova/sl_utils/slnova_expect_upload_and_run.sh ${port} ${user} ${password} ${config_filename}"
 			activate
 			end tell
 EOF
@@ -74,8 +74,8 @@ EOF
 		read -p "请等待前一个主机配置完成后输入回车："
 		echo "host number 3"
 
-		ssh_cmd="ssh -p 16893 root@region-11.autodl.com "
-		password="V0vJwfMtZM"
+		ssh_cmd="ssh -p 25196 root@region-11.autodl.com "
+		password="woD8V+uDNH"
 		config_filename="config/PEMS04/individual_3layer_12T.json"
 
 		port=`echo $ssh_cmd | awk '{print $3}'`

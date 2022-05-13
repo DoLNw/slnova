@@ -3,10 +3,10 @@ from oslo_config import cfg
 rabbitmq_group = cfg.OptGroup(name="rabbitmq", title="rabbitmq options")
 
 rabbitmq_opts = [
-    cfg.StrOpt("save_aggre_model_fold_path", default="/root/autodl-nas/STN/model/aggre"),
-    cfg.StrOpt("model_save_fold", default="/root/autodl-nas/STN/model"),
-    cfg.StrOpt("suffix", default="params"),
-    cfg.StrOpt("prefix", default="STN"),
+    # cfg.StrOpt("save_aggre_model_fold_path", default="/root/autodl-nas/STN/model/aggre"),
+    # cfg.StrOpt("model_save_fold", default="/root/autodl-nas/STN/model"),
+    cfg.StrOpt("save_aggre_model_fold_path", default="/root/autodl-nas/MNIST/model/aggre"),
+    cfg.StrOpt("model_save_fold", default="/root/autodl-nas/MNIST/model"),
 
     cfg.StrOpt("hostname", default="124.222.48.192"),
     cfg.IntOpt("port", default=5672),

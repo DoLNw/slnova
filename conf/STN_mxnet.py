@@ -9,9 +9,11 @@ STN_opts = [
     cfg.IntOpt("epochs", default=200, min=1),   # 五次一保存，正好第一次和最后一次也都是保存的
 ]
 
+
 def register_opts(conf):
     conf.register_group(STN_group)
     conf.register_opts(STN_opts, group=STN_group)
+
 
 def list_opts():
     return {STN_group: STN_opts}
