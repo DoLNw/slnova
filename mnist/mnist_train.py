@@ -374,7 +374,7 @@ def sl_aggre(mod, test_loader):
     cprint('test after aggregation', "cyan", flush=True)
     test(mod, test_loader)
 
-# 所有训练结束之后，需要告知训练结束s
+# 所有训练结束之后，需要告知训练结束
 def sl_finish(mod, test_loader):
     # 训练结束
     cprint('<============================== training finished ==============================>', "magenta")
